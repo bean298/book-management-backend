@@ -1,0 +1,9 @@
+# Data files
+data.json
+*.json
+cover/
+*.jpg
+
+# Environments
+.env
+.venv
