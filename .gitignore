@@ -3,7 +3,11 @@ data.json
 *.json
 cover/
 *.jpg
+*.log
 
 # Environments
 .env
 .venv
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
