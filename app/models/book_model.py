@@ -21,8 +21,12 @@ class Book(AppBaseMixin, Base):
     )
     title: Mapped[str] = mapped_column(String(255))
     published_year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    author_id: Mapped[str] = mapped_column(String(36), ForeignKey("authors.id"))
-    category_id: Mapped[str] = mapped_column(String(36), ForeignKey("categories.id"))
+    author_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey(f"{config.BOOK_SCHEMA}.authors.id")
+    )
+    category_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey(f"{config.BOOK_SCHEMA}.categories.id")
+    )
     cover_image: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     # Relationships to take author, category when query book

@@ -1,3 +1,12 @@
+"""
+repository.py: Generic Repository Pattern
+
+Mission:
+1. Provide apply_order_by() - helper to dynamically apply ORDER BY to SQL statements
+2. Define Repository[T] - a generic, reusable base class for all entity repositories
+3. Support paginate() with filtering, ordering, and pagination metadata
+"""
+
 from typing import Generic, TypeVar, Type, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid

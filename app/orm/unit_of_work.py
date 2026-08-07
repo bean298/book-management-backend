@@ -1,3 +1,12 @@
+"""
+unit_of_work.py: Unit of Work Pattern
+
+Mission:
+1. Define UnitOfWork - manages a single database transaction per HTTP request
+2. Auto-create repositories lazily via __getattr__ (cache in _repos)
+3. Auto-commit on success, auto-rollback on error via async context manager (__aexit__)
+"""
+
 from typing import Callable, Dict
 
 # It used to create a new session for database operations,

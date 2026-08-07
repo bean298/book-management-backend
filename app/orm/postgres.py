@@ -1,3 +1,13 @@
+"""
+postgres.py: PostgreSQL Database Connection & ORM Base
+
+Mission:
+1. Define DBContext abstract class - the contract for all database backends
+2. Define Base (DeclarativeBase) - the base class for all SQLAlchemy models
+3. Implement PostgresDBContext - concrete PostgreSQL connection manager with connection pooling
+4. Define AppBaseMixin - reusable mixin providing common fields (created_at, updated_at, object_status)
+"""
+
 from typing import AsyncGenerator, Optional
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from typing import AsyncGenerator
