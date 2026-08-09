@@ -4,6 +4,8 @@ data.json
 cover/
 *.jpg
 *.log
+*.log.*
+logs/
 
 # Environments
 .env
