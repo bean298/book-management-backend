@@ -1,9 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.configs import config
 from contextlib import asynccontextmanager
 import uvicorn
 from app.logging.logger import logger
+from app.exceptions.base_exception import BaseAppException
+from fastapi.responses import JSONResponse
 
 
 @asynccontextmanager
@@ -43,6 +45,18 @@ app.add_middleware(
     allow_methods=["*"],  # Allow methods (GET, POST...)
     allow_headers=["*"],  # Allow headers (Authorization...)
 )
+
+
+# Exception Handler
+@app.exception_handler(BaseAppException)
+async def app_exception_handler(request: Request, exc: BaseAppException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": exc.detail,
+            "error_code": exc.error_code,
+        },
+    )
 
 
 @app.get("/health")
