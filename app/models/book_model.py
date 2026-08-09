@@ -3,8 +3,7 @@ from app.orm.postgres import AppBaseMixin, Base
 from app.configs import config
 import uuid
 from sqlalchemy.orm import Mapped, relationship, mapped_column
-from sqlalchemy import String
-from sqlalchemy import String, Integer, ForeignKey
+from sqlalchemy import String, Integer, Float, ForeignKey, Text
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -28,6 +27,10 @@ class Book(AppBaseMixin, Base):
         String(36), ForeignKey(f"{config.BOOK_SCHEMA}.categories.id")
     )
     cover_image: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    price: Mapped[float] = mapped_column(Float, nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
 
     # Relationships to take author, category when query book
     author: Mapped["Author"] = relationship(back_populates="books")
