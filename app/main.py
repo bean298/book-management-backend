@@ -6,6 +6,7 @@ import uvicorn
 from app.logging.logger import logger
 from app.exceptions.base_exception import BaseAppException
 from fastapi.responses import JSONResponse
+from app.routers.auth_router import router as author_router
 
 
 @asynccontextmanager
@@ -62,6 +63,10 @@ async def app_exception_handler(request: Request, exc: BaseAppException):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# Include Routers
+app.include_router(author_router)
 
 
 if __name__ == "__main__":
