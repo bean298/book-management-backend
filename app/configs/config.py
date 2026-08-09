@@ -19,6 +19,11 @@ DATABASE_URL = (
     f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
 
+# JWT
+JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
+JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+
 # SCHEMA
 AUTH_SCHEMA = os.getenv("BOOK_MANAGEMENT_AUTH_SCHEMA", default="auth")
 BOOK_SCHEMA = os.getenv("BOOK_MANAGEMENT_BOOK_SCHEMA", default="book")
