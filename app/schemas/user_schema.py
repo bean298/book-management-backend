@@ -4,25 +4,37 @@ from uuid import UUID
 from app.enum.common import UserRole
 from app.models.user_model import User
 from app.utils.security import hash_password
+from typing import Optional
 
 
-class UserCreateReq(BaseModel):
-    """Schema for register User"""
+class _UserBase(BaseModel):
+    """Shared base fields for User schemas."""
 
-    email: EmailStr = Field(..., description="Email of user")
+    name: str = Field(..., min_length=1, max_length=255, description="User name")
+    email: EmailStr = Field(..., max_length=255, description="Email of user")
+
+
+class UserCreateReq(_UserBase):
+    """Schema for registering a new user."""
+
     password: str = Field(..., min_length=6, description="Password")
-    name: str = Field(..., description="User name")
     role: UserRole = Field(
         default=UserRole.CUSTOMER, description="User role (admin / customer)"
     )
 
 
-class UserRes(BaseModel):
+class UserRes(_UserBase):
+    """Schema for user response."""
+
     id: UUID
-    email: str
-    name: str
     role: str
     created_at: datetime
+
+
+class UpdateUserReq(BaseModel):
+    """Schema for updating user."""
+
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
 
 
 def req_to_user(data: UserCreateReq) -> User:
@@ -34,6 +46,7 @@ def req_to_user(data: UserCreateReq) -> User:
     )
 
 
+# Convert ORM model → Pydantic schema for JSON response
 def user_to_res(user: User) -> UserRes:
     return UserRes(
         id=user.id,

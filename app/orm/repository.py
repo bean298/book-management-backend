@@ -73,7 +73,7 @@ class Repository(Generic[T]):
         result = await self.session.execute(
             select(self.model).where(
                 self.model.id == uuid.UUID(id),
-                self.model.object_status == OBJECT_STATUS.DELETE.value,
+                self.model.object_status == OBJECT_STATUS.ACTIVE.value,
             )
         )
         return result.scalar_one_or_none()

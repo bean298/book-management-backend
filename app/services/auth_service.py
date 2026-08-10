@@ -2,7 +2,7 @@ from app.db.database import IUnitOfWork
 from app.models.user_model import User
 from app.schemas.user_schema import UserCreateReq, user_to_res, req_to_user
 from app.schemas.auth_schema import TokenRes, token_to_res
-from app.utils.security import hash_password, verify_password, create_access_token
+from app.utils.security import verify_password, create_access_token
 from app.logging.logger import logger
 from app.exceptions.auth_exception import (
     EmailAlreadyRegisteredError,
