@@ -8,7 +8,6 @@ from app.db.database import get_uow, IUnitOfWork
 from fastapi import Depends
 from app.exceptions.auth_exception import UserNotFoundError, AdminAccessRequiredError
 from app.exceptions.token_exception import ExpiredTokenError, InvalidTokenError
-from uuid import UUID
 from app.models.user_model import User
 
 # take token from request header (Bearer <token>)
@@ -44,9 +43,10 @@ async def get_current_user(
     except JWTError:
         raise ExpiredTokenError()
 
-    user = await uow.users.get_by_id(UUID(user_id))
-    if not user:
-        raise UserNotFoundError()
+    async with uow:
+        user = await uow.users.get_by_id(user_id)
+        if not user:
+            raise UserNotFoundError()
     return user
 
 

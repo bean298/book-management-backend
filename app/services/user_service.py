@@ -36,7 +36,6 @@ async def create_user(user_data: UserCreateReq, uow: IUnitOfWork) -> UserRes:
     # Create new user
     user = req_to_user(user_data)
     new_user = await uow.users.add(user)
-    await uow.commit()
 
     logger.info("User registered | id=%s, email=%s", new_user.id, new_user.email)
     return user_to_res(new_user)
@@ -70,8 +69,6 @@ async def update_user(
     for field, value in update_user.items():
         setattr(user, field, value)
 
-    await uow.commit()
-
     logger.info(f"User updated: id={user_id}")
 
     return user_to_res(user)
@@ -96,7 +93,6 @@ async def delete_user(user_id: str, uow: IUnitOfWork) -> UserRes:
         raise NotFoundError()
 
     await uow.users.delete(user)
-    await uow.commit()
 
     logger.info(f"User deleted: id={user_id}")
 

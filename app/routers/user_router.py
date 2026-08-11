@@ -5,17 +5,18 @@ from app.schemas.base_schema import AppBasePagingRes, AppBaseResponse
 from app.services import user_service
 from app.schemas.user_schema import UserRes, UpdateUserReq, UserCreateReq
 from app.utils.common import Error400
+from app.api.deps import get_current_user, require_admin
 
 router = APIRouter(prefix="/user", tags=["User"])
 
 
 # Create new user
-@router.post(
-    "",
-    summary="Create a new user",
-    response_model=UserRes,
-)
-async def create_user(data: UserCreateReq, uow: IUnitOfWork = Depends(get_uow)):
+@router.post("", summary="Create a new user", response_model=UserRes)
+async def create_user(
+    data: UserCreateReq,
+    uow: IUnitOfWork = Depends(get_uow),
+    admin=Depends(require_admin),
+):
     async with uow:
         try:
             res = await user_service.create_user(data, uow)
@@ -35,6 +36,7 @@ async def get_users(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1),
     uow: IUnitOfWork = Depends(get_uow),
+    admin=Depends(require_admin),
 ):
     async with uow:
         users = await user_service.list_users(
@@ -47,7 +49,11 @@ async def get_users(
 
 
 # Get user
-@router.get("/{user_id}", summary="Get user")
+@router.get(
+    "/{user_id}",
+    summary="Get user",
+    dependencies=[Depends(get_current_user)],
+)
 async def get_user_detail(
     user_id: str,
     uow: IUnitOfWork = Depends(get_uow),
@@ -70,6 +76,7 @@ async def update_user(
     user_id: str,
     data: UpdateUserReq,
     uow: IUnitOfWork = Depends(get_uow),
+    admin=Depends(require_admin),
 ):
     async with uow:
         try:
@@ -88,6 +95,7 @@ async def update_user(
 async def delete_user(
     user_id: str,
     uow: IUnitOfWork = Depends(get_uow),
+    admin=Depends(require_admin),
 ):
     async with uow:
         try:

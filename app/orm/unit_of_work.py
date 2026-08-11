@@ -37,6 +37,7 @@ class UnitOfWork:
     # Start a new session
     async def __aenter__(self):
         self.session = await self._db.session()
+        self._repos = {}  # Clear cached repositories for the new session
         return self
 
     # Get repository by name
