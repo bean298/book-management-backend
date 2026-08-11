@@ -25,12 +25,3 @@ class InvalidOTPError(BaseAppException):
             detail=detail,
             error_code="INVALID_OTP",
         )
-
-
-class ExpiredOTPError(BaseAppException):
-    def __init__(self, detail: str = "OTP has expired. Please request a new one."):
-        super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=detail,
-            error_code="EXPIRED_OTP",
-        )

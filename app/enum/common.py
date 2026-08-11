@@ -10,3 +10,8 @@ class OBJECT_STATUS(str, Enum):
 class UserRole(str, Enum):
     ADMIN = "admin"
     CUSTOMER = "customer"
+
+
+class ResetMethod(str, Enum):
+    OTP = "otp"
+    LINK = "link"

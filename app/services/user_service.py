@@ -98,7 +98,7 @@ async def delete_user(user_id: str, uow: IUnitOfWork) -> UserRes:
     await uow.users.delete(user)
     await uow.commit()
 
-    logger.info(f"Usẻ deleted: id={user_id}")
+    logger.info(f"User deleted: id={user_id}")
 
 
 # Get list users
