@@ -4,7 +4,9 @@ from app.configs import config
 import uuid
 from sqlalchemy.orm import Mapped, relationship, mapped_column
 from sqlalchemy import String, Integer, Float, ForeignKey, Text
+from sqlalchemy.dialects.postgresql import UUID
 from typing import Optional, TYPE_CHECKING
+from uuid6 import uuid7
 
 if TYPE_CHECKING:
     from app.models.author_model import Author
@@ -15,16 +17,16 @@ class Book(AppBaseMixin, Base):
     __tablename__ = config.BOOK_TABLE
     __table_args__ = {"schema": config.BOOK_SCHEMA}
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid7())
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid7, unique=True
     )
     title: Mapped[str] = mapped_column(String(255))
     published_year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    author_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey(f"{config.BOOK_SCHEMA}.authors.id")
+    author_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey(f"{config.BOOK_SCHEMA}.authors.id")
     )
-    category_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey(f"{config.BOOK_SCHEMA}.categories.id")
+    category_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey(f"{config.BOOK_SCHEMA}.categories.id")
     )
     cover_image: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     price: Mapped[float] = mapped_column(Float, nullable=False)

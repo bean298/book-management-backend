@@ -2,9 +2,9 @@ from enum import Enum
 
 
 class OBJECT_STATUS(str, Enum):
-    ACTIVE = 1
-    INACTIVE = 0
-    DELETE = -1
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    DELETE = "deleted"
 
 
 class UserRole(str, Enum):

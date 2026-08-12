@@ -6,14 +6,15 @@ from sqlalchemy import String, DateTime, ForeignKey, Boolean, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 from app.enum.common import ResetMethod
+from uuid6 import uuid7
 
 
 class PasswordResetToken(AppBaseMixin, Base):
     __tablename__ = config.PASSWORD_RESET_TABLE
     __table_args__ = {"schema": config.AUTH_SCHEMA}
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid7())
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid7, unique=True
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

@@ -11,7 +11,6 @@ from app.schemas.user_schema import (
     UpdateUserReq,
 )
 from app.exceptions.resource_exception import NotFoundError
-from app.logging.logger import logger
 
 
 # Create new user
@@ -104,7 +103,6 @@ async def list_users(
     page: int = 1,
     page_size: int = 10,
 ) -> AppBasePagingRes[UserRes]:
-
     if keyword:
         condition = User.name.icontains(f"%{keyword}%")
 
