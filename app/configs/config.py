@@ -43,3 +43,10 @@ MAIL_PORT: int = int(os.getenv("MAIL_PORT", "587"))
 MAIL_SERVER: str = os.getenv("MAIL_SERVER", "smtp.gmail.com")
 MAIL_STARTTLS: bool = os.getenv("MAIL_TLS", "True") == "True"
 MAIL_SSL_TLS: bool = os.getenv("MAIL_SSL", "False") == "True"
+
+# MinIO
+MINIO_HOST = os.getenv("BOOK_MANAGEMENT_MINIO_HOST")
+MINIO_ACCESS_KEY = os.getenv("BOOK_MANAGEMENT_MINIO_ACCESS_KEY")
+MINIO_SECRET_KEY = os.getenv("BOOK_MANAGEMENT_MINIO_SECRET_KEY")
+MINIO_REGION = os.getenv("BOOK_MANAGEMENT_MINIO_REGION")
+MINIO_BUCKET = os.getenv("BOOK_MANAGEMENT_MINIO_PI_BUCKET")
