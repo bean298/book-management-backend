@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from app.routers.auth_router import router as auth_router
 from app.routers.user_router import router as user_router
 from app.routers.author_router import router as author_router
+from app.routers.category_router import router as category_router
 
 
 @asynccontextmanager
@@ -71,6 +72,7 @@ async def health():
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(author_router)
+app.include_router(category_router)
 
 
 if __name__ == "__main__":
