@@ -66,3 +66,27 @@ async def send_otp_mail(email: str, name: str, otp_code: str) -> None:
         logger.info("Reset OTP email sent to %s", email)
     except Exception as e:
         logger.error("Failed to send reset OTP email to %s: %s", email, str(e))
+
+
+# Send reset password link email (Web)
+async def send_reset_link(email: str, name: str, token: str) -> None:
+    """Render reset link template and send email"""
+
+    # Get HTML template
+    template = jinja_env.get_template("reset_link_mail.html")
+
+    reset_url = f"{config.SERVER_URL}/reset-password?token={token}"
+    html = template.render(name=name, reset_url=reset_url)
+
+    message = MessageSchema(
+        subject="🔑 Reset Your Password - Book Management",
+        recipients=[email],
+        body=html,
+        subtype="html",
+    )
+
+    try:
+        await get_mail().send_message(message)
+        logger.info("Reset link email sent to %s", email)
+    except Exception as e:
+        logger.error("Failed to send reset link email to %s: %s", email, str(e))

@@ -6,6 +6,8 @@ import uvicorn
 from app.logging.logger import logger
 from app.exceptions.base_exception import BaseAppException
 from fastapi.responses import JSONResponse
+from fastapi.templating import Jinja2Templates
+from pathlib import Path
 from app.routers.auth_router import router as auth_router
 from app.routers.user_router import router as user_router
 from app.routers.author_router import router as author_router
@@ -42,6 +44,10 @@ app = FastAPI(
     redirect_slashes=False,
 )
 
+# Jinja2 templates for serving web pages
+templates = Jinja2Templates(directory="app/templates")
+
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
@@ -67,6 +73,14 @@ async def app_exception_handler(request: Request, exc: BaseAppException):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# When user click in button in reset link mail, redirect user to URL {config.SERVER_URL}/reset-password?token={token}
+# This router will match the URL, and render html file (reset_password.html) for user to enter new password and attach token
+@app.get("/reset-password", include_in_schema=False)
+async def reset_password_page(request: Request, token: str = ""):
+    """Render the web page for resetting password."""
+    return templates.TemplateResponse(request, "reset_password.html", {"token": token})
 
 
 # Include Routers

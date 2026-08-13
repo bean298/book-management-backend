@@ -48,6 +48,16 @@ async def request_password_reset(uow: IUnitOfWork, email: str, method: str) -> s
             email=user.email, name=user.name, otp_code=otp_code
         )
 
+    # Link (Web): send email with a link to the reset password page
+    elif method == ResetMethod.LINK:
+        token = create_reset_token(str(user.id))
+
+        await mail_service.send_reset_link(
+            email=user.email,
+            name=user.name,
+            token=token,
+        )
+
     return "If this email is registered, a reset instruction has been sent."
 
 
