@@ -1,0 +1,80 @@
+services:
+  # PostgreSQL stores application data such as users, books, authors, and categories.
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${BOOK_MANAGEMENT_DB_NAME}
+      POSTGRES_USER: ${BOOK_MANAGEMENT_DB_USER}
+      POSTGRES_PASSWORD: ${BOOK_MANAGEMENT_DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      # Keeps database data when the container is recreated.
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # The API starts only after PostgreSQL is ready to accept connections.
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # MinIO is S3-compatible object storage for book cover images.
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ROOT_USER: ${BOOK_MANAGEMENT_MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${BOOK_MANAGEMENT_MINIO_SECRET_KEY}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # MinIO Console: http://localhost:9001
+    volumes:
+      # Keeps uploaded files when the container is recreated.
+      - minio_data:/data
+
+  # MinIO does not create buckets automatically. This one-time service creates
+  # BOOK_MANAGEMENT_MINIO_PI_BUCKET if it does not exist, then exits.
+  # Therefore, `docker compose up` prepares the bucket for uploads automatically.
+  minio-init:
+    image: minio/mc:latest
+    env_file:
+      - .env
+    depends_on:
+      - minio
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        until mc alias set local http://minio:9000 "$$BOOK_MANAGEMENT_MINIO_ACCESS_KEY" "$$BOOK_MANAGEMENT_MINIO_SECRET_KEY"; do
+          sleep 2
+        done
+        mc mb --ignore-existing local/$$BOOK_MANAGEMENT_MINIO_PI_BUCKET
+
+  # FastAPI application.
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      # Services communicate through service names, not localhost, inside Docker.
+      BOOK_MANAGEMENT_DB_HOST: db
+      BOOK_MANAGEMENT_MINIO_HOST: minio:9000
+      # The MinIO client in this project uses HTTP in the DEV environment.
+      BOOK_MANAGEMENT_ENV: DEV
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      # Ensures the bucket exists before starting the API.
+      minio-init:
+        condition: service_completed_successfully
+    command: >
+      sh -c "python -m app.db.init_db &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  postgres_data:
+  minio_data:
