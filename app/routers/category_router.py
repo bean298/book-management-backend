@@ -4,7 +4,7 @@ from app.db.database import IUnitOfWork, get_uow
 from app.schemas.base_schema import AppBasePagingRes, AppBaseResponse
 from app.services import category_service
 from app.utils.common import Error400
-from app.api.deps import require_admin
+from app.api.deps import require_admin, get_current_user
 from app.schemas.category_schema import (
     CategoryCreateReq,
     UpdateCategoryReq,
@@ -73,12 +73,12 @@ async def get_category_detail(
     "/{category_id}",
     summary="Update a category",
     response_model=CategoryRes,
+    dependencies=[Depends(get_current_user)],
 )
 async def update_category(
     category_id: str,
     data: UpdateCategoryReq,
     uow: IUnitOfWork = Depends(get_uow),
-    admin=Depends(require_admin),
 ):
     async with uow:
         try:

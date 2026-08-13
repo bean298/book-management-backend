@@ -53,13 +53,11 @@ class MinioService:
             if file_size > MAX_SIZE:
                 return None, "Image too large"
 
-            # Create file name
+            # `filename` already contains the full path AND the extension
+            # (e.g. books/{book_id}/cover.jpeg), so use it as-is. Appending
+            # another extension here caused ".jpeg.jpeg".
             content_type = image.content_type
-            if extension:
-                file_name = f"{filename}.{extension}"
-            else:
-                image_format = content_type.split("/")[-1].lower()
-                file_name = f"{filename}.{image_format}"
+            file_name = filename
 
             self.client.put_object(
                 bucket_name=bucket,
