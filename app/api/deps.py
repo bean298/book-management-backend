@@ -35,6 +35,9 @@ async def get_current_user(
             algorithms=[config.JWT_ALGORITHM],
         )
 
+        if payload.get("type") != "access":
+            raise InvalidTokenError("Not an access token")
+
         # Get user id in payload
         user_id: str = payload.get("id")
         if user_id is None:

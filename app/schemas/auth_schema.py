@@ -7,6 +7,7 @@ class TokenRes(BaseModel):
     """Return token when login"""
 
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
     user: UserRes
 
@@ -16,9 +17,18 @@ class LoginReq(BaseModel):
     password: str
 
 
+class RefreshTokenReq(BaseModel):
+    refresh_token: str
+
+
+class LogoutReq(BaseModel):
+    refresh_token: str
+
+
 # Convert ORM model → Pydantic schema for JSON response
-def token_to_res(access_token: str, user: User) -> TokenRes:
+def token_to_res(access_token: str, refresh_token: str, user: User) -> TokenRes:
     return TokenRes(
         access_token=access_token,
+        refresh_token=refresh_token,
         user=user_to_res(user),
     )

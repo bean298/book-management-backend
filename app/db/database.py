@@ -33,7 +33,7 @@ class IUnitOfWork(Protocol):
     authors: AuthorRepository
     books: BookRepository
     password_reset_token: PasswordResetTokenRepository
-    refresh_token: RefreshTokenRepository
+    refresh_tokens: RefreshTokenRepository
 
     async def commit(self) -> None: ...
     async def rollback(self) -> None: ...
@@ -51,7 +51,7 @@ def get_uow() -> IUnitOfWork:
                 "authors": AuthorRepository,
                 "books": BookRepository,
                 "password_reset_token": PasswordResetTokenRepository,
-                "refresh_token": RefreshTokenRepository,
+                "refresh_tokens": RefreshTokenRepository,
             },
         ),
     )

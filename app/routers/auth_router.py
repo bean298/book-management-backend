@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from app.db.database import get_uow, IUnitOfWork
 from app.schemas.user_schema import UserCreateReq, UserRes
-from app.schemas.auth_schema import LoginReq, TokenRes
+from app.schemas.auth_schema import LoginReq, TokenRes, RefreshTokenReq
 from app.services import auth_service, password_reset_service
 from app.services.mail_service import send_welcome_email
 from app.schemas.password_reset_schema import (
@@ -84,3 +84,18 @@ async def reset_password(
             uow, data.reset_token, data.new_password
         )
     return MessageResponse(message=message)
+
+
+# Refresh token
+@router.post("/refresh-token", response_model=TokenRes)
+async def refresh(data: RefreshTokenReq, uow: IUnitOfWork = Depends(get_uow)):
+    async with uow:
+        return await auth_service.refresh_token(uow, data.refresh_token)
+
+
+# Logout
+@router.post("/logout", response_model=MessageResponse)
+async def logout(data: RefreshTokenReq, uow: IUnitOfWork = Depends(get_uow)):
+    async with uow:
+        await auth_service.logout(uow, data.refresh_token)
+    return MessageResponse(message="Logged out successfully")

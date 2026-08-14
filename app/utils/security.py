@@ -6,6 +6,8 @@ import random  # Generate auto number
 from jose.exceptions import ExpiredSignatureError
 from jose import jwt, JWTError
 from app.exceptions.token_exception import ExpiredTokenError, InvalidTokenError
+import secrets
+import hashlib
 
 RESET_LINK_EXPIRE_MINUTES = 5
 
@@ -38,7 +40,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    to_encode.update({"exp": expire})
+    to_encode.update({"type": "access", "exp": expire})
 
     # Encode JWT
     return jwt.encode(to_encode, config.JWT_SECRET_KEY, algorithm=config.JWT_ALGORITHM)
@@ -77,3 +79,18 @@ def verify_reset_token(reset_token: str) -> str:
 def generate_otp() -> str:
     """Generate 6 numbers OTP - integer numbers (Mobile only)"""
     return f"{random.randint(0, 999999):06d}"
+
+
+# --- HELPER: Generate Refresh Token ---
+def create_refresh_token() -> tuple[str, str]:
+    """Generate refresh token"""
+    raw = secrets.token_urlsafe(config.REFRESH_TOKEN_LENGTH)
+
+    # Raw for client, hash_token for database
+    return raw, hash_token(raw)
+
+
+# --- HELPER: Hash Refresh Token ---
+def hash_token(token: str) -> str:
+    """Hash Token by SHA-256 (hex with 64 characters)"""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
