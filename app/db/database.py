@@ -16,6 +16,7 @@ from app.repositories.category_model import CategoryRepository
 from app.repositories.author_repository import AuthorRepository
 from app.repositories.book_repository import BookRepository
 from app.repositories.password_reset_repository import PasswordResetTokenRepository
+from app.repositories.refresh_token_repository import RefreshTokenRepository
 
 # Connection to database
 database = PostgresDBContext(
@@ -32,6 +33,7 @@ class IUnitOfWork(Protocol):
     authors: AuthorRepository
     books: BookRepository
     password_reset_token: PasswordResetTokenRepository
+    refresh_token: RefreshTokenRepository
 
     async def commit(self) -> None: ...
     async def rollback(self) -> None: ...
@@ -49,6 +51,7 @@ def get_uow() -> IUnitOfWork:
                 "authors": AuthorRepository,
                 "books": BookRepository,
                 "password_reset_token": PasswordResetTokenRepository,
+                "refresh_token": RefreshTokenRepository,
             },
         ),
     )

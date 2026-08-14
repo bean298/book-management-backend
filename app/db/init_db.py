@@ -8,6 +8,7 @@ from app.models.category_model import Category
 from app.models.author_model import Author
 from app.models.book_model import Book
 from app.models.password_reset_model import PasswordResetToken
+from app.models.refresh_token_model import RefreshToken
 
 
 async def init_db():
