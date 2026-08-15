@@ -31,6 +31,8 @@ This system supports:
 ---
 
 ## 📁 Project Structure
+
+```bash
 ├── app/                        # Main application
 │   ├── main.py                 # FastAPI entry point (app, CORS, lifespan)
 │   ├── api/
@@ -68,6 +70,7 @@ This system supports:
 ├── env.example                 # Environment variables template
 ├── requirements.txt            # Python dependencies
 └── README.md
+```
 
 ---
 
