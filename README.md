@@ -30,6 +30,47 @@ This system supports:
 
 ---
 
+## 📁 Project Structure
+├── app/                        # Main application
+│   ├── main.py                 # FastAPI entry point (app, CORS, lifespan)
+│   ├── api/
+│   │   └── deps.py             # Auth dependencies (get_current_user, require_admin)
+│   ├── configs/
+│   │   └── config.py           # Load .env & app configuration
+│   ├── constants/
+│   │   ├── common.py           # Shared constants
+│   │   └── upload.py           # Upload rules (allowed types, max size)
+│   ├── core/
+│   │   └── s3_minio.py         # MinIO client (upload/delete/presigned URL)
+│   ├── db/
+│   │   ├── database.py         # Engine, session, Unit of Work
+│   │   └── init_db.py          # Create schemas & tables
+│   ├── enum/
+│   │   └── common.py           # Enums (UserRole, ResetMethod, ...)
+│   ├── exceptions/             # Custom exceptions & error codes
+│   ├── logging/
+│   │   └── logger.py           # Logging configuration
+│   ├── models/                 # SQLAlchemy models (ORM)
+│   ├── orm/
+│   │   ├── postgres.py         # Base model & mixins
+│   │   ├── repository.py       # Generic repository
+│   │   └── unit_of_work.py     # Unit of Work pattern
+│   ├── repositories/           # Data-access per entity
+│   ├── routers/                # API routes (auth, user, author, category, book)
+│   ├── schemas/                # Pydantic schemas (request/response)
+│   ├── services/               # Business logic layer
+│   ├── templates/              # Jinja2 templates (email & web)
+│   └── utils/                  # Helpers (security, mail, slug, image)
+├── logs/                       # Application log files
+├── test_data/                  # Seed data (authors, categories, books JSON)
+├── docker-compose.yml          # Docker services (db, minio, api)
+├── Dockerfile                  # Multi-stage Docker build
+├── env.example                 # Environment variables template
+├── requirements.txt            # Python dependencies
+└── README.md
+
+---
+
 ## 🧩 Main Features
 
 ### 👤 User
