@@ -17,6 +17,8 @@ from app.repositories.author_repository import AuthorRepository
 from app.repositories.book_repository import BookRepository
 from app.repositories.password_reset_repository import PasswordResetTokenRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
+from app.repositories.cart_repository import CartRepository
+from app.repositories.cart_item_repository import CartItemRepository
 
 # Connection to database
 database = PostgresDBContext(
@@ -34,6 +36,8 @@ class IUnitOfWork(Protocol):
     books: BookRepository
     password_reset_token: PasswordResetTokenRepository
     refresh_tokens: RefreshTokenRepository
+    cart: CartRepository
+    cart_items: CartItemRepository
 
     async def commit(self) -> None: ...
     async def rollback(self) -> None: ...
@@ -52,6 +56,8 @@ def get_uow() -> IUnitOfWork:
                 "books": BookRepository,
                 "password_reset_token": PasswordResetTokenRepository,
                 "refresh_tokens": RefreshTokenRepository,
+                "cart": CartRepository,
+                "cart_items": CartItemRepository,
             },
         ),
     )
