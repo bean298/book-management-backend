@@ -58,7 +58,7 @@ This system supports:
 │   │   ├── repository.py       # Generic repository
 │   │   └── unit_of_work.py     # Unit of Work pattern
 │   ├── repositories/           # Data-access per entity
-│   ├── routers/                # API routes (auth, user, author, category, book)
+│   ├── routers/                # API routes (auth, user, author, category, book, cart)
 │   ├── schemas/                # Pydantic schemas (request/response)
 │   ├── services/               # Business logic layer
 │   ├── templates/              # Jinja2 templates (email & web)
@@ -80,6 +80,7 @@ This system supports:
 - Register & login
 - Refresh access token
 - View book/categories/authors
+- Add book to cart
 - Request password reset via OTP (Mobile) or email link (Web)
 
 ### 🧑‍💼 Admin
