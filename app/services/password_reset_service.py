@@ -47,6 +47,7 @@ async def request_password_reset(uow: IUnitOfWork, email: str, method: str) -> s
         await mail_service.send_otp_mail(
             email=user.email, name=user.name, otp_code=otp_code
         )
+        logger.info("Password reset OTP sent | email=%s", user.email)
 
     # Link (Web): send email with a link to the reset password page
     elif method == ResetMethod.LINK:
@@ -57,6 +58,7 @@ async def request_password_reset(uow: IUnitOfWork, email: str, method: str) -> s
             name=user.name,
             token=token,
         )
+        logger.info("Password reset link sent | email=%s", user.email)
 
     return "If this email is registered, a reset instruction has been sent."
 
@@ -80,10 +82,12 @@ async def verify_otp(uow: IUnitOfWork, email: str, otp_code: str) -> VerifyOTPRe
     # Verify OTP
     otp_record = await uow.password_reset_token.find_valid_otp(user.id, otp_code)
     if not otp_record:
+        logger.warning("Verify OTP failed: invalid or expired OTP | email=%s", email)
         raise InvalidOTPError()
 
-    otp_record.used == True
+    otp_record.used = True
     await uow.commit()
+    logger.info("OTP verified | user_id=%s", user.id)
 
     reset_token = create_reset_token(str(user.id))
 
@@ -105,6 +109,7 @@ async def reset_password(uow: IUnitOfWork, reset_token: str, new_password: str) 
 
     user = await uow.users.get_by_id(user_id)
     if not user:
+        logger.warning("Reset password failed: user not found | user_id=%s", user_id)
         raise NotFoundError()
 
     user.hashed_password = hash_password(new_password)

@@ -120,6 +120,7 @@ async def refresh_token(uow: IUnitOfWork, refresh_token_raw: str) -> TokenRes:
     # Get refresh token
     stored = await uow.refresh_tokens.get_by_hash(token_hash)
     if not stored:
+        logger.warning("Refresh token failed: token not found")
         raise InvalidRefreshTokenError()
 
     # Checked token was revoked and replaced or not ?
@@ -128,14 +129,24 @@ async def refresh_token(uow: IUnitOfWork, refresh_token_raw: str) -> TokenRes:
         # User have to relogin
         await uow.refresh_tokens.revoke_all_by_user(str(stored.user_id))
         await uow.commit()
+        logger.warning(
+            "Refresh token failed: token reused | user_id=%s", stored.user_id
+        )
         raise RefreshTokenReusedError()
 
     # Checked token was expired or not ?
     if stored.revoked or stored.expires_at < datetime.now(timezone.utc):
+        logger.warning(
+            "Refresh token failed: token revoked or expired | user_id=%s",
+            stored.user_id,
+        )
         raise InvalidRefreshTokenError()
 
     user = await uow.users.get_by_id(str(stored.user_id))
     if not user:
+        logger.warning(
+            "Refresh token failed: user not found | user_id=%s", stored.user_id
+        )
         raise UserNotFoundError()
 
     # Create new refresh token
@@ -159,6 +170,7 @@ async def refresh_token(uow: IUnitOfWork, refresh_token_raw: str) -> TokenRes:
     access_token = create_access_token(
         data={"id": str(user.id), "role": user.role.value}
     )
+    logger.info("Refresh token successful | user_id=%s", user.id)
     return token_to_res(access_token, raw, user)
 
 
@@ -174,3 +186,6 @@ async def logout(uow: IUnitOfWork, refresh_token_raw: str) -> None:
     stored = await uow.refresh_tokens.get_by_hash(token_hash)
     if stored:
         await uow.refresh_tokens.revoke(stored)
+        logger.info("Logout successful | user_id=%s", stored.user_id)
+    else:
+        logger.warning("Logout failed: refresh token not found")

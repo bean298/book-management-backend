@@ -71,3 +71,22 @@ async def get_category_detail(
             return AppBaseResponse(data=res)
         except ValueError as ex:
             return Error400(str(ex))
+
+
+# Delete cart item in cart
+@router.delete(
+    "/{cart_item}",
+    summary="Delete a cart item",
+    response_model=AppBaseResponse,
+)
+async def delete_cart_item(
+    cart_item_id: str,
+    uow: IUnitOfWork = Depends(get_uow),
+    current_user: User = Depends(get_current_user),
+):
+    async with uow:
+        try:
+            await cart_service.delete_cart_item(cart_item_id, current_user.id, uow)
+            return AppBaseResponse(message="Cart item deleted successfully")
+        except ValueError as ex:
+            return Error400(str(ex))
