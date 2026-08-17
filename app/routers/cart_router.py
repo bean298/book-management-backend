@@ -99,7 +99,7 @@ async def update_cart_item(
 
 # Delete cart item in cart
 @router.delete(
-    "/{cart_item}",
+    "/{cart_item_id}",
     summary="Delete a cart item",
     response_model=AppBaseResponse,
 )
