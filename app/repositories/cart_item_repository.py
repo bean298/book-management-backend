@@ -2,6 +2,7 @@ from app.orm.repository import Repository
 from app.models.cart_item_model import CartItem
 from sqlalchemy import select
 import uuid
+from sqlalchemy.orm import selectinload
 
 
 class CartItemRepository(Repository[CartItem]):
@@ -24,6 +25,10 @@ class CartItemRepository(Repository[CartItem]):
         self,
         cart_id: uuid.UUID,
     ) -> list[CartItem]:
-        stmt = select(CartItem).where(CartItem.cart_id == uuid.UUID(cart_id))
+        stmt = (
+            select(CartItem)
+            .options(selectinload(CartItem.book))
+            .where(CartItem.cart_id == uuid.UUID(cart_id))
+        )
         result = await self.session.execute(stmt)
         return result.scalars().all()

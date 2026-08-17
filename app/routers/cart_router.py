@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from app.db.database import IUnitOfWork, get_uow
 from app.services import cart_service
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_admin
 from app.schemas.cart_schema import CartRes
 from app.schemas.cart_item_schema import AddToCartReq
 from app.schemas.base_schema import AppBaseResponse
@@ -11,8 +11,9 @@ from app.models.user_model import User
 router = APIRouter(prefix="/cart", tags=["Cart"])
 
 
+# Add book to card
 @router.post(
-    "/items",
+    "/add-to-cart",
     response_model=AppBaseResponse[CartRes],
     summary="Add a book to cart",
 )
@@ -33,5 +34,40 @@ async def add_to_cart(
                 data=cart,
                 message="Added to cart successfully",
             )
+        except ValueError as ex:
+            return Error400(str(ex))
+
+
+# Get cart of current user
+@router.get(
+    "/get-cart-of-user",
+    summary="Get cart of user (Current user)",
+)
+async def get_category_detail(
+    uow: IUnitOfWork = Depends(get_uow),
+    current_user: User = Depends(get_current_user),
+):
+    async with uow:
+        try:
+            res = await cart_service.get_cart_of_user(current_user.id, uow)
+            return AppBaseResponse(data=res)
+        except ValueError as ex:
+            return Error400(str(ex))
+
+
+# Get cart for admin
+@router.get(
+    "/{cart_id}",
+    summary="Get cart of user (Admin Only)",
+)
+async def get_category_detail(
+    cart_id: str,
+    uow: IUnitOfWork = Depends(get_uow),
+    admin=Depends(require_admin),
+):
+    async with uow:
+        try:
+            res = await cart_service.get_cart(cart_id, uow)
+            return AppBaseResponse(data=res)
         except ValueError as ex:
             return Error400(str(ex))

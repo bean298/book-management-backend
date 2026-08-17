@@ -5,30 +5,7 @@ from app.schemas.cart_schema import cart_to_res
 from app.models.cart_model import Cart
 from uuid import UUID
 from app.models.cart_item_model import CartItem
-
-
-# Create cart if not exist, Get cart if existed
-async def _get_or_create_cart(
-    uow: IUnitOfWork,
-    user_id: str | UUID,
-) -> Cart:
-    cart = await uow.cart.get_cart_by_user_id(str(user_id))
-    if cart:
-        return cart
-
-    cart = Cart(user_id=UUID(str(user_id)), total_quantity=0, total_price=0)
-    return await uow.cart.add(cart)
-
-
-# Recalculate total quantity, price of cart after add items
-async def _recalculate_cart_totals(
-    cart: Cart,
-    cart_items: list[CartItem],
-) -> None:
-
-    # Calculate total price and quantity
-    cart.total_quantity = sum(item.quantity for item in cart_items)
-    cart.total_price = sum(item.quantity * item.unit_price for item in cart_items)
+from app.exceptions.resource_exception import NotFoundError
 
 
 # Create new cart (when user add product)
@@ -37,6 +14,20 @@ async def add_to_cart(
     data: AddToCartReq,
     uow: IUnitOfWork,
 ) -> CartRes:
+    """
+    Args:
+        user_id (str): [description]
+        data (AddToCartReq): [description]
+        uow (IUnitOfWork): [description]
+
+    Raises:
+        ValueError: [description]
+        ValueError: [description]
+        ValueError: [description]
+
+    Returns:
+        CartRes: [description]
+    """
     # Check book existing and quantity of book
     book = await uow.books.get_by_id(str(data.book_id))
     if not book:
@@ -76,4 +67,50 @@ async def add_to_cart(
 
     await _recalculate_cart_totals(cart, cart_items)
 
-    return cart_to_res(cart, cart_items, book, user_id)
+    return cart_to_res(cart, cart_items, str(user_id))
+
+
+# Get cart of user (current user)
+async def get_cart_of_user(user_id: str, uow: IUnitOfWork) -> CartRes:
+    cart = await uow.cart.get_cart_by_user_id(str(user_id))
+    if not cart:
+        raise NotFoundError()
+
+    cart_items = await uow.cart_items.get_list_by_cart_id(str(cart.id))
+
+    return cart_to_res(cart, cart_items, str(cart.user_id))
+
+
+# Get cart (Admin)
+async def get_cart(cart_id: str, uow: IUnitOfWork) -> CartRes:
+    cart = await uow.cart.get_by_id(str(cart_id))
+    if not cart:
+        raise NotFoundError()
+
+    cart_items = await uow.cart_items.get_list_by_cart_id(str(cart.id))
+
+    return cart_to_res(cart, cart_items, str(cart.user_id))
+
+
+# Create cart if not exist, Get cart if existed
+async def _get_or_create_cart(
+    uow: IUnitOfWork,
+    user_id: str | UUID,
+) -> Cart:
+    cart = await uow.cart.get_cart_by_user_id(str(user_id))
+    if cart:
+        return cart
+
+    cart = Cart(user_id=UUID(str(user_id)), total_quantity=0, total_price=0)
+    return await uow.cart.add(cart)
+
+
+# Recalculate total quantity, price of cart after add items
+async def _recalculate_cart_totals(
+    cart: Cart,
+    cart_items: list[CartItem],
+) -> None:
+
+    # Calculate total price and quantity
+    cart.total_quantity = sum(item.quantity for item in cart_items)
+    cart.total_price = sum(item.quantity * item.unit_price for item in cart_items)

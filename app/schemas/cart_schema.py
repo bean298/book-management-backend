@@ -24,9 +24,7 @@ class CartRes(_CartBase):
     created_at: datetime
 
 
-def cart_to_res(
-    cart: Cart, cart_items: list[CartItem], book: Book, user_id: str
-) -> CartRes:
+def cart_to_res(cart: Cart, cart_items: list[CartItem], user_id: str) -> CartRes:
     return CartRes(
         id=str(cart.id),
         user_id=user_id,
@@ -38,9 +36,9 @@ def cart_to_res(
                 id=str(item.id),
                 cart_id=str(item.cart_id),
                 book_id=str(item.book_id),
-                book_title=book.title,
-                book_description=book.description,
-                cover_image=resolve_images(book.cover_image),
+                book_title=item.book.title,
+                book_description=item.book.description,
+                cover_image=resolve_images(item.book.cover_image),
                 quantity=item.quantity,
                 unit_price=item.unit_price,
                 created_at=item.created_at,
