@@ -1,6 +1,6 @@
 from app.schemas.cart_schema import CartRes
 from app.db.database import IUnitOfWork
-from app.schemas.cart_item_schema import AddToCartReq
+from app.schemas.cart_item_schema import AddToCartReq, UpdateCartItemReq
 from app.schemas.cart_schema import cart_to_res
 from app.models.cart_model import Cart
 from uuid import UUID
@@ -147,8 +147,97 @@ async def get_cart(cart_id: str, uow: IUnitOfWork) -> CartRes:
     return cart_to_res(cart, cart_items, str(cart.user_id))
 
 
+# Update cart item
+async def update_cart_item(
+    cart_item_id: str, user_id: str, data: UpdateCartItemReq, uow: IUnitOfWork
+) -> CartRes:
+    """
+    Args:
+        cart_item_id (str): [description]
+        user_id (str): [description]
+        data (UpdateCartItemReq): [description]
+        uow (IUnitOfWork): [description]
+
+    Raises:
+        NotFoundError: [description]
+        NotFoundError: [description]
+        NotFoundError: [description]
+        NotFoundError: [description]
+        ValueError: [description]
+
+    Returns:
+        CartRes: [description]
+    """
+    # Get cart of user
+    cart = await uow.cart.get_cart_by_user_id(str(user_id))
+    if not cart:
+        logger.warning("Cant found cart of this user")
+        raise NotFoundError()
+
+    # Get cart item
+    item = await uow.cart_items.get_by_id(str(cart_item_id))
+    if not item:
+        raise NotFoundError()
+
+    # Make sure item belong to user's cart
+    if str(item.cart_id) != str(cart.id):
+        logger.warning(
+            "Update item failed: item does not belong to cart "
+            "| cart_item_id=%s, cart_id=%s",
+            cart_item_id,
+            cart.id,
+        )
+        raise NotFoundError()
+
+    # Check quantity
+    book = await uow.books.get_by_id(str(item.book_id))
+    if not book:
+        raise NotFoundError()
+    if data.quantity > book.quantity:
+        logger.warning(
+            "Update item failed: not enough stock | book_id=%s, requested=%s, available=%s",
+            book.id,
+            data.quantity,
+            book.quantity,
+        )
+        raise ValueError(f"Not enough stock. Only {book.quantity} item(s) available.")
+
+    # Update quantity of cart item
+    item.quantity = data.quantity
+    logger.info(
+        "Cart item updated | cart_id=%s, book_id=%s, quantity=%s",
+        cart.id,
+        book.id,
+        item.quantity,
+    )
+
+    # Recalculate cart totals
+    cart_items = await uow.cart_items.get_list_by_cart_id(str(cart.id))
+    await _recalculate_cart_totals(cart, cart_items)
+
+    logger.info(
+        "Cart recalculated after update | cart_id=%s, total_quantity=%s, total_price=%s",
+        cart.id,
+        cart.total_quantity,
+        cart.total_price,
+    )
+
+    return cart_to_res(cart, cart_items, str(user_id))
+
+
 # Delete cart item
 async def delete_cart_item(cart_item_id: str, user_id: str, uow: IUnitOfWork) -> None:
+    """
+    Args:
+        cart_item_id (str): [description]
+        user_id (str): [description]
+        uow (IUnitOfWork): [description]
+
+    Raises:
+        NotFoundError: [description]
+        NotFoundError: [description]
+        NotFoundError: [description]
+    """
     # Get cart of user
     cart = await uow.cart.get_cart_by_user_id(str(user_id))
     if not cart:

@@ -3,7 +3,7 @@ from app.db.database import IUnitOfWork, get_uow
 from app.services import cart_service
 from app.api.deps import get_current_user, require_admin
 from app.schemas.cart_schema import CartRes
-from app.schemas.cart_item_schema import AddToCartReq
+from app.schemas.cart_item_schema import AddToCartReq, UpdateCartItemReq
 from app.schemas.base_schema import AppBaseResponse
 from app.utils.common import Error400
 from app.models.user_model import User
@@ -69,6 +69,30 @@ async def get_category_detail(
         try:
             res = await cart_service.get_cart(cart_id, uow)
             return AppBaseResponse(data=res)
+        except ValueError as ex:
+            return Error400(str(ex))
+
+
+@router.put(
+    "/items/{cart_item_id}",
+    response_model=AppBaseResponse[CartRes],
+    summary="Update quantity of a cart item",
+)
+async def update_cart_item(
+    cart_item_id: str,
+    data: UpdateCartItemReq,
+    uow: IUnitOfWork = Depends(get_uow),
+    current_user: User = Depends(get_current_user),
+):
+    async with uow:
+        try:
+            cart = await cart_service.update_cart_item(
+                user_id=current_user.id,
+                cart_item_id=cart_item_id,
+                data=data,
+                uow=uow,
+            )
+            return AppBaseResponse(data=cart, message="Cart item updated")
         except ValueError as ex:
             return Error400(str(ex))
 

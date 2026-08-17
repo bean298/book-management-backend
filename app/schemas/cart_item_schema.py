@@ -21,6 +21,10 @@ class AddToCartReq(BaseModel):
     quantity: int = Field(default=0, description="Quantity")
 
 
+class UpdateCartItemReq(BaseModel):
+    quantity: int = Field(gt=0)
+
+
 class CartItemRes(_CartItemBase):
     """Schema for cart response."""
 
