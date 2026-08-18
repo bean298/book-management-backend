@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 from app.models.cart_model import Cart
 from app.models.cart_item_model import CartItem
-from app.models.book_model import Book
 from uuid import UUID
 from datetime import datetime
 from app.schemas.cart_item_schema import CartItemRes
