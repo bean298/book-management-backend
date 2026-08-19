@@ -1,6 +1,7 @@
 services:
-  # PostgreSQL stores application data such as users, books, authors, and categories.
+  # Container db.
   db:
+    # Image for container db
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${BOOK_MANAGEMENT_DB_NAME}
@@ -18,8 +19,10 @@ services:
       timeout: 5s
       retries: 10
 
+  # Container minio
   # MinIO is S3-compatible object storage for book cover images.
   minio:
+    # Image for container minio
     image: minio/minio:latest
     environment:
       MINIO_ROOT_USER: ${BOOK_MANAGEMENT_MINIO_ACCESS_KEY}
@@ -52,6 +55,7 @@ services:
 
   # FastAPI application.
   api:
+    # Build image from Dockerfile
     build:
       context: .
       dockerfile: Dockerfile
@@ -65,7 +69,9 @@ services:
       BOOK_MANAGEMENT_ENV: DEV
     ports:
       - "8000:8000"
+    # Condition for build this container
     depends_on:
+      # Ensures db exists before starting the API.
       db:
         condition: service_healthy
       # Ensures the bucket exists before starting the API.
