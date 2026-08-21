@@ -40,9 +40,11 @@ async def add_to_cart(
 
     # Get Cart | Create Cart
     cart = await _get_or_create_cart(uow, user_id)
-
-    # Cart Item
-    cart_item = await uow.cart_items.get_by_cart_and_book(str(cart.id), str(book.id))
+    if cart:
+        # Cart Item
+        cart_item = await uow.cart_items.get_by_cart_and_book(
+            str(cart.id), str(book.id)
+        )
 
     # Check quantity in cart and in stock
     current_quantity = cart_item.quantity if cart_item else 0
