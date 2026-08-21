@@ -19,7 +19,7 @@ from app.repositories.password_reset_repository import PasswordResetTokenReposit
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.cart_repository import CartRepository
 from app.repositories.cart_item_repository import CartItemRepository
-from app.repositories.order_repository import Order
+from app.repositories.order_repository import OrderRepository
 from app.repositories.order_item_repository import OrderItemRepository
 
 # Connection to database
@@ -40,7 +40,7 @@ class IUnitOfWork(Protocol):
     refresh_tokens: RefreshTokenRepository
     cart: CartRepository
     cart_items: CartItemRepository
-    order: Order
+    order: OrderRepository
     order_items: OrderItemRepository
 
     async def commit(self) -> None: ...
@@ -62,7 +62,7 @@ def get_uow() -> IUnitOfWork:
                 "refresh_tokens": RefreshTokenRepository,
                 "cart": CartRepository,
                 "cart_items": CartItemRepository,
-                "order": Order,
+                "order": OrderRepository,
                 "order_items": OrderItemRepository,
             },
         ),
