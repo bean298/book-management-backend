@@ -14,6 +14,7 @@ from app.routers.author_router import router as author_router
 from app.routers.category_router import router as category_router
 from app.routers.book_router import router as book_router
 from app.routers.cart_router import router as cart_router
+from app.routers.order_router import router as order_router
 
 
 @asynccontextmanager
@@ -91,6 +92,7 @@ app.include_router(author_router)
 app.include_router(category_router)
 app.include_router(book_router)
 app.include_router(cart_router)
+app.include_router(order_router)
 
 
 if __name__ == "__main__":
