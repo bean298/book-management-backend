@@ -28,7 +28,6 @@ class Order(AppBaseMixin, Base):
             ondelete="CASCADE",
         ),
         nullable=False,
-        unique=True,
     )
     total_quantity: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     total_price: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
