@@ -6,6 +6,8 @@ from app.schemas.order_schema import CreateOrderReq, OrderRes
 from app.schemas.base_schema import AppBasePagingRes, AppBaseResponse
 from app.models.user_model import User
 from app.services import order_service
+from typing import Optional
+from app.enum.common import OrderStatus
 
 router = APIRouter(prefix="/order", tags=["Order"])
 
@@ -30,5 +32,52 @@ async def checkout(
                 data=order,
                 message="Create order successfully",
             )
+    except ValueError as ex:
+        return Error400(str(ex))
+
+
+# Get list orders of user
+@router.get(
+    "/my-orders",
+    summary="Get my orders (paging)",
+    response_model=AppBaseResponse[AppBasePagingRes[OrderRes]],
+)
+async def get_my_orders(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1),
+    status: Optional[OrderStatus] = Query(
+        default=None, description="Filter order status"
+    ),
+    uow: IUnitOfWork = Depends(get_uow),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        async with uow:
+            orders = await order_service.list_orders(
+                str(current_user.id),
+                uow,
+                page=page,
+                page_size=page_size,
+                status=status,
+            )
+            return AppBaseResponse[AppBasePagingRes[OrderRes]](data=orders)
+    except ValueError as ex:
+        return Error400(str(ex))
+
+
+# Get order
+@router.get(
+    "/{order_id}",
+    summary="Get order",
+)
+async def get_order(
+    order_id: str,
+    uow: IUnitOfWork = Depends(get_uow),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        async with uow:
+            res = await order_service.get_order(order_id, str(current_user.id), uow)
+            return AppBaseResponse(data=res)
     except ValueError as ex:
         return Error400(str(ex))

@@ -6,12 +6,29 @@ from app.models.order_model import Order
 from app.models.order_item_model import OrderItem
 from app.schemas.order_schema import order_to_res
 from app.enum.common import OrderStatus
+from app.schemas.base_schema import AppBasePagingRes
+from app.enum.common import OrderStatus
+from typing import Optional
 
 
 # Checkout
 async def checkout(
     user_id: str, cart_id: str, data: CreateOrderReq, uow: IUnitOfWork
 ) -> OrderRes:
+    """
+    Args:
+        user_id (str): [description]
+        cart_id (str): [description]
+        data (CreateOrderReq): [description]
+        uow (IUnitOfWork): [description]
+
+    Raises:
+        ValueError: [description]
+        NotFoundError: [description]
+
+    Returns:
+        OrderRes: [description]
+    """
     # Get cart
     cart = await uow.cart.get_by_id(str(cart_id))
     if not cart:
@@ -97,3 +114,78 @@ async def checkout(
     )
 
     return order_to_res(order, created_order_items, user)
+
+
+# Get all orders of a user
+async def list_orders(
+    user_id: str,
+    uow: IUnitOfWork,
+    page: int = 1,
+    page_size: int = 10,
+    status: Optional[OrderStatus] = None,
+) -> AppBasePagingRes[OrderRes]:
+    """
+    Args:
+        user_id (str): [description]
+        uow (IUnitOfWork): [description]
+        page (int, optional): [description]. Defaults to 1.
+        page_size (int, optional): [description]. Defaults to 10.
+
+    Returns:
+        AppBasePagingRes[OrderRes]: [description]
+    """
+    data = await uow.order.get_list_paginate_orders_by_user_id(
+        user_id, page=page, page_size=page_size, status=status
+    )
+
+    return AppBasePagingRes[OrderRes](
+        items=[
+            order_to_res(order, order.order_items, order.user)
+            for order in data["items"]
+        ],
+        total=data["total"],
+        page=data["page"],
+        page_size=data["page_size"],
+        is_full=data["is_full"],
+    )
+
+
+# Get order of a user
+async def get_order(
+    order_id: str,
+    user_id: str,
+    uow: IUnitOfWork,
+) -> OrderRes:
+    """
+    Args:
+        order_id (str): [description]
+        user_id (str): [description]
+        uow (IUnitOfWork): [description]
+
+    Raises:
+        NotFoundError: [description]
+
+    Returns:
+        OrderRes: [description]
+    """
+    order = await uow.order.get_order_by_id_with_items(order_id)
+    if not order:
+        raise NotFoundError("Order", order_id)
+
+    if str(order.user_id) != str(user_id):
+        raise NotFoundError("Order", order_id)
+
+    return order_to_res(order, order.order_items, order.user)
+
+
+# Get all order (ADMIN)
+async def list_orders_admin(
+    user_id: str,
+    uow: IUnitOfWork,
+    page: int = 1,
+    page_size: int = 10,
+    status: Optional[OrderStatus] = None,
+) -> AppBasePagingRes[OrderRes]:
+    data = await uow.order.get_list_paginate_orders_by_user_id(
+        user_id, page=page, page_size=page_size, status=status
+    )
