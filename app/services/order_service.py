@@ -180,12 +180,23 @@ async def get_order(
 
 # Get all order (ADMIN)
 async def list_orders_admin(
-    user_id: str,
     uow: IUnitOfWork,
     page: int = 1,
     page_size: int = 10,
     status: Optional[OrderStatus] = None,
+    user_id: Optional[str] = None,
 ) -> AppBasePagingRes[OrderRes]:
-    data = await uow.order.get_list_paginate_orders_by_user_id(
-        user_id, page=page, page_size=page_size, status=status
+    orders = await uow.order.get_all_orders(
+        user_id=user_id, page=page, page_size=page_size, status=status
+    )
+
+    return AppBasePagingRes[OrderRes](
+        items=[
+            order_to_res(order, order.order_items, order.user)
+            for order in orders["items"]
+        ],
+        total=orders["total"],
+        page=orders["page"],
+        page_size=orders["page_size"],
+        is_full=orders["is_full"],
     )

@@ -74,5 +74,46 @@ class OrderRepository(Repository[Order]):
         page: int = 1,
         page_size: int = 10,
         status: OrderStatus | None = None,
+        user_id: uuid.UUID | None = None,
     ) -> dict:
-        pass
+        conditions = []
+
+        if status:
+            conditions.append(Order.status == status)
+        if user_id:
+            conditions.append(Order.user_id == uuid.UUID(str(user_id)))
+
+        stmt = (
+            select(Order)
+            .options(
+                selectinload(Order.order_items).selectinload(OrderItem.book),
+                selectinload(Order.user),
+            )
+            .order_by(Order.created_at.desc())
+        )
+
+        # Total order SELECT COUNT(*)
+        count_stmt = select(func.count()).select_from(Order)  # Create SQL statement
+
+        # If conditions -> add conditions
+        if conditions:
+            stmt = stmt.where(*conditions)
+            count_stmt = count_stmt.where(*conditions)
+
+        total = await self.session.scalar(
+            count_stmt
+        )  # Execute SQL statement SELECT COUNT(*)
+
+        # Pagination
+        stmt = stmt.offset((page - 1) * page_size).limit(page_size)
+        result = await self.session.execute(stmt)
+        items = result.scalars().unique().all()
+
+        # Return dictionary
+        return {
+            "items": items,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "is_full": page_size * page >= total,
+        }

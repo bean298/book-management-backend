@@ -65,6 +65,30 @@ async def get_my_orders(
         return Error400(str(ex))
 
 
+# Get list orders for admin
+@router.get(
+    "/all-orders",
+    summary="Get all orders (admin, paging)",
+    response_model=AppBaseResponse[AppBasePagingRes[OrderRes]],
+)
+async def get_all_orders(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1),
+    status: Optional[OrderStatus] = Query(default=None),
+    user_id: Optional[str] = Query(default=None),
+    uow: IUnitOfWork = Depends(get_uow),
+    admin=Depends(require_admin),
+):
+    try:
+        async with uow:
+            orders = await order_service.list_orders_admin(
+                uow, page=page, page_size=page_size, status=status, user_id=user_id
+            )
+            return AppBaseResponse[AppBasePagingRes[OrderRes]](data=orders)
+    except ValueError as ex:
+        return Error400(str(ex))
+
+
 # Get order
 @router.get(
     "/{order_id}",
