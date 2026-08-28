@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from app.db.database import IUnitOfWork, get_uow
 from app.utils.common import Error400
 from app.api.deps import require_admin, get_current_user
-from app.schemas.order_schema import CreateOrderReq, OrderRes
+from app.schemas.order_schema import CreateOrderReq, OrderRes, UpdateOrderReq
 from app.schemas.base_schema import AppBasePagingRes, AppBaseResponse
 from app.models.user_model import User
 from app.services import order_service
@@ -31,6 +31,29 @@ async def checkout(
             return AppBaseResponse(
                 data=order,
                 message="Create order successfully",
+            )
+    except ValueError as ex:
+        return Error400(str(ex))
+
+
+@router.put(
+    "/{order_id}",
+    summary="Update order status",
+    response_model=AppBaseResponse[OrderRes],
+)
+async def update_order(
+    order_id: str,
+    status: OrderStatus = Query(..., description="New order status"),
+    uow: IUnitOfWork = Depends(get_uow),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        async with uow:
+            data = UpdateOrderReq(status=status)
+            res = await order_service.update_order(order_id, current_user, data, uow)
+            return AppBaseResponse(
+                data=res,
+                message="Update order successfully",
             )
     except ValueError as ex:
         return Error400(str(ex))

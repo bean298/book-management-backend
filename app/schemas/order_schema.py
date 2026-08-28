@@ -16,6 +16,26 @@ class _OrderBase(BaseModel):
     shipping_address: str = Field(..., min_length=1, description="Shipping address")
 
 
+class CreateOrderReq(_OrderBase):
+    """Schema for creating a new order."""
+
+    pass
+
+
+class UpdateOrderReq(BaseModel):
+    """Schema for updating order status."""
+
+    status: OrderStatus
+
+
+class OrderUserRes(BaseModel):
+    """Information of user in order."""
+
+    id: UUID = Field(..., description="User ID")
+    name: str = Field(..., description="User name")
+    email: str = Field(..., description="User email")
+
+
 class OrderRes(_OrderBase):
     """Schema for order response."""
 
@@ -26,20 +46,6 @@ class OrderRes(_OrderBase):
     status: OrderStatus
     order_items: list[OrderItemRes]
     created_at: datetime
-
-
-class CreateOrderReq(_OrderBase):
-    """Schema for creating a new order."""
-
-    pass
-
-
-class OrderUserRes(BaseModel):
-    """Information of user in order."""
-
-    id: UUID = Field(..., description="User ID")
-    name: str = Field(..., description="User name")
-    email: str = Field(..., description="User email")
 
 
 def order_to_res(order: Order, order_items: list[OrderItem], user: User) -> OrderRes:

@@ -4,11 +4,11 @@ from app.logging.logger import logger
 from app.schemas.order_schema import OrderRes, CreateOrderReq
 from app.models.order_model import Order
 from app.models.order_item_model import OrderItem
-from app.schemas.order_schema import order_to_res
-from app.enum.common import OrderStatus
+from app.schemas.order_schema import order_to_res, UpdateOrderReq
+from app.enum.common import OrderStatus, UserRole
 from app.schemas.base_schema import AppBasePagingRes
-from app.enum.common import OrderStatus
 from typing import Optional
+from app.models.user_model import User
 
 
 # Checkout
@@ -114,6 +114,85 @@ async def checkout(
     )
 
     return order_to_res(order, created_order_items, user)
+
+
+# Update order
+async def update_order(
+    order_id: str,
+    user: User,
+    data: UpdateOrderReq,
+    uow: IUnitOfWork,
+) -> OrderRes:
+    # Get order
+    order = await uow.order.get_order_by_id_with_items(str(order_id))
+    if not order:
+        raise NotFoundError("Order", order_id)
+
+    is_admin = user.role == UserRole.ADMIN
+
+    # Ensure take right order of user
+    # Admin can update order of all users
+    if not is_admin and str(order.user_id) != str(user.id):
+        raise NotFoundError("Order", order_id)
+
+    current_status = order.status  # Current status of order
+    new_status = data.status  # Status user want to update
+
+    if is_admin:
+        # Admin: PENDING -> CONFIRMED -> SHIPPED -> DELIVERED
+        allowed_transitions = {
+            OrderStatus.PENDING: {OrderStatus.CONFIRMED, OrderStatus.CANCELLED},
+            OrderStatus.CONFIRMED: {OrderStatus.SHIPPED, OrderStatus.CANCELLED},
+            OrderStatus.SHIPPED: {OrderStatus.DELIVERED, OrderStatus.CANCELLED},
+            OrderStatus.DELIVERED: set(),
+            OrderStatus.CANCELLED: set(),
+        }
+        # Use current_status to check what is the next status
+        # set() is a default value of get()
+        allowed = allowed_transitions.get(current_status, set())
+
+        # Check new_status in allowed
+        if new_status not in allowed:
+            raise ValueError(
+                f"Admin can't change status from '{current_status.value}' "
+                f"to '{new_status.value}'"
+            )
+
+    else:
+        # Customer: PENDING -> CANCELLED
+        if not (
+            current_status == OrderStatus.PENDING
+            and new_status == OrderStatus.CANCELLED
+        ):
+            raise ValueError("Can't cancel order")
+
+    order.status = new_status
+
+    # Restock if order cancelled
+    if new_status == OrderStatus.CANCELLED:
+        for item in order.order_items:
+            book = await uow.books.get_by_id_for_update(str(item.book_id))
+            if not book:
+                raise NotFoundError("Book", str(item.book_id))
+
+            book.quantity += item.quantity
+
+            logger.info(
+                "Restock book | book_id=%s, quantity=%s, order_id=%s",
+                book.id,
+                item.quantity,
+                order.id,
+            )
+
+    logger.info(
+        "Order updated | order_id=%s, from=%s, to=%s, by_user_id=%s",
+        order.id,
+        current_status.value,
+        new_status.value,
+        user.id,
+    )
+
+    return order_to_res(order, order.order_items, order.user)
 
 
 # Get all orders of a user
