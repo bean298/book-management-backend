@@ -5,9 +5,8 @@ from contextlib import asynccontextmanager
 import uvicorn
 from app.logging.logger import logger
 from app.exceptions.base_exception import BaseAppException
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from pathlib import Path
 from app.routers.auth_router import router as auth_router
 from app.routers.user_router import router as user_router
 from app.routers.author_router import router as author_router
@@ -15,6 +14,7 @@ from app.routers.category_router import router as category_router
 from app.routers.book_router import router as book_router
 from app.routers.cart_router import router as cart_router
 from app.routers.order_router import router as order_router
+from app.core.docs_ui import get_swagger_ui_html
 
 
 @asynccontextmanager
@@ -36,12 +36,7 @@ app = FastAPI(
         "email": "tuannase171419@fpt.edu.vn",
     },
     license_info={"name": "MIT", "url": "https://opensource.org/licenses/MIT"},
-    swagger_ui_parameters={
-        "syntaxHighlight": True,  # Highlight syntax in Swagger UI
-        "tryItOutEnabled": True,  # Turn on "Try it out" button in Swagger UI
-        "displayRequestDuration": True,  # Display request duration in Swagger UI
-        "filter": True,
-    },
+    docs_url=None,  # Disable the default Swagger UI
     lifespan=lifespan,  # Lifespan event
     redirect_slashes=False,
 )
@@ -75,6 +70,12 @@ async def app_exception_handler(request: Request, exc: BaseAppException):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# Custom themed Swagger UI (dark, modern)
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui():
+    return HTMLResponse(get_swagger_ui_html())
 
 
 # When user click in button in reset link mail, redirect user to URL {config.SERVER_URL}/reset-password?token={token}
