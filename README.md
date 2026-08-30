@@ -58,7 +58,7 @@ This system supports:
 │   │   ├── repository.py       # Generic repository
 │   │   └── unit_of_work.py     # Unit of Work pattern
 │   ├── repositories/           # Data-access per entity
-│   ├── routers/                # API routes (auth, user, author, category, book, cart)
+│   ├── routers/                # API routes (auth, user, author, category, book, cart, order)
 │   ├── schemas/                # Pydantic schemas (request/response)
 │   ├── services/               # Business logic layer
 │   ├── templates/              # Jinja2 templates (email & web)
@@ -69,6 +69,7 @@ This system supports:
 ├── Dockerfile                  # Multi-stage Docker build
 ├── env.example                 # Environment variables template
 ├── requirements.txt            # Python dependencies
+├── pyproject.toml              # Python dependencies
 └── README.md
 ```
 
@@ -81,6 +82,7 @@ This system supports:
 - Refresh access token
 - View book/categories/authors
 - Add book to cart
+- Checkout products in cart
 - Request password reset via OTP (Mobile) or email link (Web)
 
 ### 🧑‍💼 Admin
@@ -99,6 +101,64 @@ This system supports:
 ## 🗂️ Image Storage
 - Integrated with MinIO
 - Bucket: `book-management-bucket`
+
+---
+
+
+## 🧹 Code Quality (Ruff)
+
+[Ruff](https://docs.astral.sh/ruff/) is an extremely fast Python **linter + formatter**, written in Rust. It replaces Flake8, isort, pyupgrade, and Black in one tool.
+
+
+#### `[tool.ruff]` — general settings
+| Key | Description |
+|-----|-------------|
+| `line-length = 90` | Max line width in characters. Exceeding it triggers `E501`. |
+| `target-version = "py312"` | Target Python version. Ruff uses it to decide which modern syntax is allowed. |
+
+
+#### `select` — rule groups to enable:
+| Code | Group | What it checks |
+|------|-------|----------------|
+| `E` | pycodestyle errors | Style/errors: line too long (`E501`), `x == True/False` comparisons (`E712`)… |
+| `F` | Pyflakes | Real bugs: unused import (`F401`), unused variable (`F841`), undefined name (`F821`)… |
+| `W` | pycodestyle warnings | Whitespace warnings: trailing whitespace (`W291`), blank line issues… |
+| `I` | isort | Import sorting & grouping (`I001` unsorted imports)… |
+| `UP` | pyupgrade | Modern Python syntax: `Optional[X]` → `X \| None` (`UP045`)… |
+| `B` | flake8-bugbear | Bug-prone patterns: mutable default arg (`B006`), bare raise in `except` (`B904`)… |
+
+#### `ignore` — rules to disable:
+| Code | Why it is ignored |
+|------|-------------------|
+| `B008` | FastAPI passes `Depends()` calls as default arguments, which `B008` would false-positive on. |
+| `UP046` | Keep `Union[X, Y]` instead of forcing the `X \| Y` syntax. |
+
+#### `[tool.ruff.format]` — formatter settings
+| Key | Description |
+|-----|-------------|
+| `quote-style = "double"` | Use double quotes for strings. |
+| `indent-style = "space"` | Indent with spaces, not tabs. |
+| `line-ending = "auto"` | Auto-detect line endings (LF / CRLF). |
+| `docstring-code-format = true` | Also format code examples inside docstrings. |
+
+### VS Code integration
+
+Install the **Ruff** extension and enable auto-format & import-sort on save in `.vscode/settings.json`:
+
+```json
+{
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  }
+}
+```
+
+> ⚠️ **SQLAlchemy note:** Ruff's `E712` ("use `not x` instead of `x == False`") does **not** apply to SQLAlchemy columns. In queries, use `.is_(False)` / `.is_(True)` instead of `not`.
 
 ---
 
@@ -145,3 +205,4 @@ ReDoc:
 ```bash
 http://localhost:8000/redoc
 ```
+
