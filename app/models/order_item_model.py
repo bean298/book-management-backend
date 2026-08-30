@@ -1,22 +1,27 @@
 from __future__ import annotations
-from app.orm.postgres import AppBaseMixin, Base
-from app.configs import config
+
 import uuid
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, Float, ForeignKey, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
 from typing import TYPE_CHECKING
+
+from sqlalchemy import Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid6 import uuid7
 
+from app.configs import config
+from app.orm.postgres import AppBaseMixin, Base
+
 if TYPE_CHECKING:
-    from app.models.order_model import Order
     from app.models.book_model import Book
+    from app.models.order_model import Order
 
 
 class OrderItem(AppBaseMixin, Base):
     __tablename__ = config.ORDER_ITEMS_TABLE
     __table_args__ = (
-        UniqueConstraint("order_id", "book_id", name="uq_order_item_order_book"),
+        UniqueConstraint(
+            "order_id", "book_id", name="uq_order_item_order_book"
+        ),
         {"schema": config.COMMERCE_SCHEMA},
     )
 
@@ -46,5 +51,5 @@ class OrderItem(AppBaseMixin, Base):
     quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     # Relationships
-    order: Mapped["Order"] = relationship(back_populates="order_items")
-    book: Mapped["Book"] = relationship()
+    order: Mapped[Order] = relationship(back_populates="order_items")
+    book: Mapped[Book] = relationship()

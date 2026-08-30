@@ -1,10 +1,11 @@
-from minio import Minio, S3Error
+from datetime import timedelta
+
 from fastapi import UploadFile
+from minio import Minio, S3Error
+
 from app.configs import config
 from app.constants.upload import ALLOWED_TYPES, MAX_SIZE
 from app.logging.logger import logger
-from datetime import timedelta
-from typing import Optional
 
 
 class MinioService:
@@ -24,7 +25,7 @@ class MinioService:
         bucket: str,
         object_name: str,
         expires_hour: int = 1,
-    ) -> Optional[str]:
+    ) -> str | None:
         try:
             return self.client.presigned_get_object(
                 bucket,
@@ -41,7 +42,7 @@ class MinioService:
         bucket: str,
         filename: str,
         image: UploadFile,
-        extension: Optional[str] = None,
+        extension: str | None = None,
     ):
         try:
             # Check image type
@@ -77,7 +78,7 @@ class MinioService:
                     "error": str(e),
                 },
             )
-            raise ValueError("Upload image to MinIO failed", str(e))
+            raise ValueError("Upload image to MinIO failed", str(e)) from e
 
     # Delete file
     def delete_file(

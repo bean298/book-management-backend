@@ -1,11 +1,13 @@
-from app.orm.repository import Repository
-from app.models.order_model import Order
-from app.models.order_item_model import OrderItem
-from sqlalchemy import select
 import uuid
+
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
+
 from app.enum.common import OrderStatus
+from app.models.order_item_model import OrderItem
+from app.models.order_model import Order
+from app.orm.repository import Repository
 
 
 class OrderRepository(Repository[Order]):

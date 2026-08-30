@@ -1,9 +1,9 @@
 import logging
+import os
 import sys  # Write Log into console
 from logging.handlers import (
     TimedRotatingFileHandler,
 )  # Write Log into file with auto create new file Log in new date
-import os
 
 
 def setup_logger(service_name: str, log_directory: str = "logs"):
@@ -19,11 +19,14 @@ def setup_logger(service_name: str, log_directory: str = "logs"):
     logger.setLevel(logging.INFO)
 
     # Format what information will show in file log
-    formatLog = "[%(asctime)s], %(levelname)-8s [%(pathname)s :%(lineno)d in function %(funcName)s] %(message)s"
+    formatLog = "[%(asctime)s], %(levelname)-8s [%(pathname)s :%(lineno)d in function %(funcName)s] %(message)s"  # noqa: E501
 
     # Handler auto create new file log in new date
     file_handler = TimedRotatingFileHandler(
-        log_file_path, when="midnight", interval=1, backupCount=7  # Keep 7 days log
+        log_file_path,
+        when="midnight",
+        interval=1,
+        backupCount=7,  # Keep 7 days log
     )
     file_handler.setFormatter(logging.Formatter(formatLog))
 

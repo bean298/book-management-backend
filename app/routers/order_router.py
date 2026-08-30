@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, Query
+
+from app.api.deps import get_current_user, require_admin
 from app.db.database import IUnitOfWork, get_uow
-from app.utils.common import Error400
-from app.api.deps import require_admin, get_current_user
-from app.schemas.order_schema import CreateOrderReq, OrderRes, UpdateOrderReq
-from app.schemas.base_schema import AppBasePagingRes, AppBaseResponse
-from app.models.user_model import User
-from app.services import order_service
-from typing import Optional
 from app.enum.common import OrderStatus
+from app.models.user_model import User
+from app.schemas.base_schema import AppBasePagingRes, AppBaseResponse
+from app.schemas.order_schema import CreateOrderReq, OrderRes, UpdateOrderReq
+from app.services import order_service
+from app.utils.common import Error400
 
 router = APIRouter(prefix="/order", tags=["Order"])
 
@@ -26,7 +26,6 @@ async def checkout(
 ):
     try:
         async with uow:
-
             order = await order_service.checkout(current_user.id, cart_id, data, uow)
             return AppBaseResponse(
                 data=order,
@@ -68,9 +67,7 @@ async def update_order(
 async def get_my_orders(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1),
-    status: Optional[OrderStatus] = Query(
-        default=None, description="Filter order status"
-    ),
+    status: OrderStatus | None = Query(default=None, description="Filter order status"),
     uow: IUnitOfWork = Depends(get_uow),
     current_user: User = Depends(get_current_user),
 ):
@@ -97,8 +94,8 @@ async def get_my_orders(
 async def get_all_orders(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1),
-    status: Optional[OrderStatus] = Query(default=None),
-    user_id: Optional[str] = Query(default=None),
+    status: OrderStatus | None = Query(default=None),
+    user_id: str | None = Query(default=None),
     uow: IUnitOfWork = Depends(get_uow),
     admin=Depends(require_admin),
 ):

@@ -1,23 +1,23 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class OBJECT_STATUS(str, Enum):
+class OBJECT_STATUS(StrEnum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     DELETE = "deleted"
 
 
-class UserRole(str, Enum):
+class UserRole(StrEnum):
     ADMIN = "admin"
     CUSTOMER = "customer"
 
 
-class ResetMethod(str, Enum):
+class ResetMethod(StrEnum):
     OTP = "otp"
     LINK = "link"
 
 
-class OrderStatus(str, Enum):
+class OrderStatus(StrEnum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
     SHIPPED = "shipped"
@@ -25,7 +25,7 @@ class OrderStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-class PaymentMethod(str, Enum):
+class PaymentMethod(StrEnum):
     CASH = "cash"
     CREDIT = "bank_transfer"
     MOMO = "momo"

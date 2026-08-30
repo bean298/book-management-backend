@@ -1,10 +1,11 @@
-from typing import Optional
-from uuid import UUID
-from pydantic import BaseModel, Field
-from app.models.book_model import Book
 from datetime import datetime
-from app.utils.image import resolve_images
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+
+from app.models.book_model import Book
 from app.utils.build_slug import build_slug
+from app.utils.image import resolve_images
 
 
 class _BookBase(BaseModel):
@@ -13,13 +14,13 @@ class _BookBase(BaseModel):
     title: str = Field(..., description="Book title", max_length=255)
     author_id: UUID = Field(..., description="Author ID")
     category_id: UUID = Field(..., description="Category ID")
-    published_year: Optional[int] = Field(default=None, description="Published year")
-    cover_image: Optional[str] = Field(
+    published_year: int | None = Field(default=None, description="Published year")
+    cover_image: str | None = Field(
         default=None, max_length=500, description="Cover image URL"
     )
     price: float = Field(..., description="Book price")
     quantity: int = Field(default=0, description="Quantity in stock")
-    description: Optional[str] = Field(
+    description: str | None = Field(
         default=None, max_length=2000, description="Book description"
     )
 
@@ -33,14 +34,14 @@ class CreateBookReq(_BookBase):
 class UpdateBookReq(BaseModel):
     """Schema for updating book."""
 
-    title: Optional[str] = Field(..., description="Book title", max_length=255)
-    published_year: Optional[int] = Field(default=None, description="Published year")
-    cover_image: Optional[str] = Field(
+    title: str | None = Field(..., description="Book title", max_length=255)
+    published_year: int | None = Field(default=None, description="Published year")
+    cover_image: str | None = Field(
         default=None, max_length=500, description="Cover image URL"
     )
-    price: Optional[float] = Field(..., description="Book price")
-    quantity: Optional[int] = Field(default=0, description="Quantity in stock")
-    description: Optional[str] = Field(
+    price: float | None = Field(..., description="Book price")
+    quantity: int | None = Field(default=0, description="Quantity in stock")
+    description: str | None = Field(
         default=None, max_length=2000, description="Book description"
     )
 

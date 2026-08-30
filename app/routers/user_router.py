@@ -1,11 +1,11 @@
-from typing import Optional
 from fastapi import APIRouter, Depends, Query
+
+from app.api.deps import get_current_user, require_admin
 from app.db.database import IUnitOfWork, get_uow
 from app.schemas.base_schema import AppBasePagingRes, AppBaseResponse
+from app.schemas.user_schema import UpdateUserReq, UserCreateReq, UserRes
 from app.services import user_service
-from app.schemas.user_schema import UserRes, UpdateUserReq, UserCreateReq
 from app.utils.common import Error400
-from app.api.deps import get_current_user, require_admin
 
 router = APIRouter(prefix="/user", tags=["User"])
 
@@ -32,7 +32,7 @@ async def create_user(
     response_model=AppBaseResponse[AppBasePagingRes[UserRes]],
 )
 async def get_users(
-    keyword: Optional[str] = None,
+    keyword: str | None = None,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1),
     uow: IUnitOfWork = Depends(get_uow),

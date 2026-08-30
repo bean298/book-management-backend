@@ -1,5 +1,5 @@
-from app.orm.repository import Repository
 from app.models.order_item_model import OrderItem
+from app.orm.repository import Repository
 
 
 class OrderItemRepository(Repository[OrderItem]):

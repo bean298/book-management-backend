@@ -1,7 +1,9 @@
-from pathlib import Path
 from datetime import datetime
-from jinja2 import Environment, FileSystemLoader  # Create HTML from Python data
+from pathlib import Path
+
 from fastapi_mail import MessageSchema
+from jinja2 import Environment, FileSystemLoader  # Create HTML from Python data
+
 from app.configs import config
 from app.logging.logger import logger
 from app.utils.mail import get_mail

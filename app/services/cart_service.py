@@ -1,12 +1,12 @@
-from app.schemas.cart_schema import CartRes
-from app.db.database import IUnitOfWork
-from app.schemas.cart_item_schema import AddToCartReq, UpdateCartItemReq
-from app.schemas.cart_schema import cart_to_res
-from app.models.cart_model import Cart
 from uuid import UUID
-from app.models.cart_item_model import CartItem
+
+from app.db.database import IUnitOfWork
 from app.exceptions.resource_exception import NotFoundError
 from app.logging.logger import logger
+from app.models.cart_item_model import CartItem
+from app.models.cart_model import Cart
+from app.schemas.cart_item_schema import AddToCartReq, UpdateCartItemReq
+from app.schemas.cart_schema import CartRes, cart_to_res
 
 
 # Create new cart (when user add product)
@@ -42,16 +42,14 @@ async def add_to_cart(
     cart = await _get_or_create_cart(uow, user_id)
     if cart:
         # Cart Item
-        cart_item = await uow.cart_items.get_by_cart_and_book(
-            str(cart.id), str(book.id)
-        )
+        cart_item = await uow.cart_items.get_by_cart_and_book(str(cart.id), str(book.id))
 
     # Check quantity in cart and in stock
     current_quantity = cart_item.quantity if cart_item else 0
     requested_total_quantity = current_quantity + data.quantity
     if requested_total_quantity > book.quantity:
         logger.warning(
-            "Add to cart failed: not enough stock | book_id=%s, requested=%s, available=%s",
+            "Add to cart failed: not enough stock | book_id=%s, requested=%s, available=%s",  # noqa: E501
             book.id,
             requested_total_quantity,
             book.quantity,
@@ -197,7 +195,7 @@ async def update_cart_item(
         raise NotFoundError()
     if data.quantity > book.quantity:
         logger.warning(
-            "Update item failed: not enough stock | book_id=%s, requested=%s, available=%s",
+            "Update item failed: not enough stock | book_id=%s, requested=%s, available=%s",  # noqa: E501
             book.id,
             data.quantity,
             book.quantity,

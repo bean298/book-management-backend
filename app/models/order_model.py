@@ -1,17 +1,20 @@
 from __future__ import annotations
-from app.orm.postgres import AppBaseMixin, Base
-from app.configs import config
+
 import uuid
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, Float, ForeignKey, Enum, Text
-from sqlalchemy.dialects.postgresql import UUID
 from typing import TYPE_CHECKING
+
+from sqlalchemy import Enum, Float, ForeignKey, Integer, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid6 import uuid7
+
+from app.configs import config
 from app.enum.common import OrderStatus, PaymentMethod
+from app.orm.postgres import AppBaseMixin, Base
 
 if TYPE_CHECKING:
-    from app.models.user_model import User
     from app.models.order_item_model import OrderItem
+    from app.models.user_model import User
 
 
 class Order(AppBaseMixin, Base):
@@ -29,8 +32,12 @@ class Order(AppBaseMixin, Base):
         ),
         nullable=False,
     )
-    total_quantity: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    total_price: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    total_quantity: Mapped[int] = mapped_column(
+        Integer, default=0, nullable=False
+    )
+    total_price: Mapped[float] = mapped_column(
+        Float, default=0.0, nullable=False
+    )
     status: Mapped[OrderStatus] = mapped_column(
         Enum(OrderStatus), default=OrderStatus.PENDING, nullable=False
     )
@@ -40,8 +47,8 @@ class Order(AppBaseMixin, Base):
     shipping_address: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Relationship
-    user: Mapped["User"] = relationship()
-    order_items: Mapped[list["OrderItem"]] = relationship(
+    user: Mapped[User] = relationship()
+    order_items: Mapped[list[OrderItem]] = relationship(
         back_populates="order",
         cascade="all, delete-orphan",
     )

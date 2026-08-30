@@ -1,6 +1,7 @@
-from app.orm.repository import Repository
-from app.models.author_model import Author
 from sqlalchemy import select
+
+from app.models.author_model import Author
+from app.orm.repository import Repository
 
 
 class AuthorRepository(Repository[Author]):

@@ -1,7 +1,9 @@
-from app.orm.repository import Repository
-from app.models.cart_model import Cart
-from sqlalchemy import select
 import uuid
+
+from sqlalchemy import select
+
+from app.models.cart_model import Cart
+from app.orm.repository import Repository
 
 
 class CartRepository(Repository[Cart]):

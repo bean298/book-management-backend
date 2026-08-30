@@ -1,16 +1,15 @@
 from app.db.database import IUnitOfWork
+from app.exceptions.resource_exception import NotFoundError
 from app.logging.logger import logger
-from app.schemas.base_schema import AppBasePagingRes
-from typing import Optional
+from app.models.author_model import Author
 from app.schemas.author_schema import (
+    AuthorCreateReq,
     AuthorRes,
     UpdateAuthorReq,
     author_to_res,
-    AuthorCreateReq,
     req_to_author,
 )
-from app.exceptions.resource_exception import NotFoundError
-from app.models.author_model import Author
+from app.schemas.base_schema import AppBasePagingRes
 
 
 # Create new author
@@ -99,7 +98,7 @@ async def delete_author(author_id: str, uow: IUnitOfWork) -> AuthorRes:
 # Get list authors
 async def list_authors(
     uow: IUnitOfWork,
-    keyword: Optional[str] = None,
+    keyword: str | None = None,
     page: int = 1,
     page_size: int = 10,
 ) -> AppBasePagingRes[AuthorRes]:

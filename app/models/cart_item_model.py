@@ -1,16 +1,19 @@
 from __future__ import annotations
-from app.orm.postgres import AppBaseMixin, Base
-from app.configs import config
+
 import uuid
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, Float, ForeignKey, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
 from typing import TYPE_CHECKING
+
+from sqlalchemy import Float, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid6 import uuid7
 
+from app.configs import config
+from app.orm.postgres import AppBaseMixin, Base
+
 if TYPE_CHECKING:
-    from app.models.cart_model import Cart
     from app.models.book_model import Book
+    from app.models.cart_model import Cart
 
 
 class CartItem(AppBaseMixin, Base):
@@ -46,5 +49,5 @@ class CartItem(AppBaseMixin, Base):
     unit_price: Mapped[float] = mapped_column(Float, nullable=False)
 
     # Relationships
-    cart: Mapped["Cart"] = relationship(back_populates="cart_items")
-    book: Mapped["Book"] = relationship()
+    cart: Mapped[Cart] = relationship(back_populates="cart_items")
+    book: Mapped[Book] = relationship()

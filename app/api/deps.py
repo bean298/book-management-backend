@@ -1,12 +1,16 @@
+from fastapi import Depends
 from fastapi.security import (
-    HTTPBearer,
     HTTPAuthorizationCredentials,
+    HTTPBearer,
 )  # Take token from header
 from jose import JWTError, jwt  # Create JWT
+
 from app.configs import config
-from app.db.database import get_uow, IUnitOfWork
-from fastapi import Depends
-from app.exceptions.auth_exception import UserNotFoundError, AdminAccessRequiredError
+from app.db.database import IUnitOfWork, get_uow
+from app.exceptions.auth_exception import (
+    AdminAccessRequiredError,
+    UserNotFoundError,
+)
 from app.exceptions.token_exception import ExpiredTokenError, InvalidTokenError
 from app.models.user_model import User
 
@@ -43,8 +47,8 @@ async def get_current_user(
         if user_id is None:
             raise InvalidTokenError("Invalid token payload")
 
-    except JWTError:
-        raise ExpiredTokenError()
+    except JWTError as err:
+        raise ExpiredTokenError() from err
 
     async with uow:
         user = await uow.users.get_by_id(user_id)

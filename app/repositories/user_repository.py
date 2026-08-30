@@ -1,6 +1,7 @@
-from app.orm.repository import Repository
-from app.models.user_model import User
 from sqlalchemy import select
+
+from app.models.user_model import User
+from app.orm.repository import Repository
 
 
 class UserRepository(Repository[User]):

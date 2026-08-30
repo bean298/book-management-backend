@@ -1,14 +1,19 @@
-from app.logging.logger import logger
+from datetime import UTC, datetime, timedelta
+
 from app.db.database import IUnitOfWork
-from app.exceptions.token_exception import InvalidOTPError
 from app.enum.common import ResetMethod
-from app.utils.security import generate_otp, create_reset_token, verify_reset_token
-from datetime import datetime, timedelta, timezone
-from app.models.password_reset_model import PasswordResetToken
-from app.services import mail_service
 from app.exceptions.resource_exception import NotFoundError
-from app.utils.security import hash_password
+from app.exceptions.token_exception import InvalidOTPError
+from app.logging.logger import logger
+from app.models.password_reset_model import PasswordResetToken
 from app.schemas.password_reset_schema import VerifyOTPRes
+from app.services import mail_service
+from app.utils.security import (
+    create_reset_token,
+    generate_otp,
+    hash_password,
+    verify_reset_token,
+)
 
 OTP_EXPIRE_MINUTES = 5
 
@@ -33,7 +38,7 @@ async def request_password_reset(uow: IUnitOfWork, email: str, method: str) -> s
     if method == ResetMethod.OTP:
         # Create new OTP
         otp_code = generate_otp()
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRE_MINUTES)
+        expires_at = datetime.now(UTC) + timedelta(minutes=OTP_EXPIRE_MINUTES)
 
         reset_token = PasswordResetToken(
             user_id=user.id,

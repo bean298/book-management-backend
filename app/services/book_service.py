@@ -1,26 +1,26 @@
 from fastapi import UploadFile
-from typing import Optional
+
 from app.configs import config
 from app.core.s3_minio import minio_service
 from app.db.database import IUnitOfWork
+from app.exceptions.resource_exception import NotFoundError
+from app.logging.logger import logger
 from app.models.book_model import Book
 from app.schemas.base_schema import AppBasePagingRes
 from app.schemas.book_schema import (
-    CreateBookReq,
     BookRes,
+    CreateBookReq,
+    UpdateBookReq,
     book_to_res,
     req_to_book,
-    UpdateBookReq,
 )
-from app.logging.logger import logger
-from app.exceptions.resource_exception import NotFoundError
 
 
 # Create new book (with optional cover image via multipart)
 async def create_book(
     book_data: CreateBookReq,
     uow: IUnitOfWork,
-    image: Optional[UploadFile] = None,
+    image: UploadFile | None = None,
 ) -> BookRes:
     # Check existing book title
     existing_book = await uow.books.get_book_by_title(book_data.title)
@@ -58,7 +58,7 @@ async def update_book(
     book_id: str,
     book_data: UpdateBookReq,
     uow: IUnitOfWork,
-    image: Optional[UploadFile] = None,
+    image: UploadFile | None = None,
 ) -> BookRes:
     """
     Args:
@@ -145,7 +145,7 @@ async def delete_book(book_id: str, uow: IUnitOfWork) -> None:
 # Get list books
 async def list_books(
     uow: IUnitOfWork,
-    keyword: Optional[str] = None,
+    keyword: str | None = None,
     page: int = 1,
     page_size: int = 10,
 ) -> AppBasePagingRes[BookRes]:

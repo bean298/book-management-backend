@@ -1,4 +1,5 @@
-from fastapi_mail import FastMail, ConnectionConfig
+from fastapi_mail import ConnectionConfig, FastMail
+
 from app.configs import config
 
 _mail: FastMail | None = None

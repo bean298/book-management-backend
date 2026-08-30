@@ -1,11 +1,13 @@
-from app.orm.postgres import AppBaseMixin, Base
-from app.configs import config
 import uuid
-from sqlalchemy.orm import Mapped, mapped_column
+
+from sqlalchemy import Enum, String
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
 from uuid6 import uuid7
+
+from app.configs import config
 from app.enum.common import UserRole
-from sqlalchemy import String, Enum
+from app.orm.postgres import AppBaseMixin, Base
 
 
 class User(AppBaseMixin, Base):

@@ -1,14 +1,17 @@
 from app.db.database import IUnitOfWork
+from app.enum.common import OrderStatus, UserRole
 from app.exceptions.resource_exception import NotFoundError
 from app.logging.logger import logger
-from app.schemas.order_schema import OrderRes, CreateOrderReq
-from app.models.order_model import Order
 from app.models.order_item_model import OrderItem
-from app.schemas.order_schema import order_to_res, UpdateOrderReq
-from app.enum.common import OrderStatus, UserRole
-from app.schemas.base_schema import AppBasePagingRes
-from typing import Optional
+from app.models.order_model import Order
 from app.models.user_model import User
+from app.schemas.base_schema import AppBasePagingRes
+from app.schemas.order_schema import (
+    CreateOrderReq,
+    OrderRes,
+    UpdateOrderReq,
+    order_to_res,
+)
 
 
 # Checkout
@@ -57,7 +60,7 @@ async def checkout(
             raise ValueError("Cart contains an invalid quantity")
         if item.quantity > book.quantity:
             logger.warning(
-                "Checkout failed: insufficient stock | book_id=%s, requested=%s, available=%s",
+                "Checkout failed: insufficient stock | book_id=%s, requested=%s, available=%s",  # noqa: E501
                 book.id,
                 item.quantity,
                 book.quantity,
@@ -161,8 +164,7 @@ async def update_order(
     else:
         # Customer: PENDING -> CANCELLED
         if not (
-            current_status == OrderStatus.PENDING
-            and new_status == OrderStatus.CANCELLED
+            current_status == OrderStatus.PENDING and new_status == OrderStatus.CANCELLED
         ):
             raise ValueError("Can't cancel order")
 
@@ -201,7 +203,7 @@ async def list_orders(
     uow: IUnitOfWork,
     page: int = 1,
     page_size: int = 10,
-    status: Optional[OrderStatus] = None,
+    status: OrderStatus | None = None,
 ) -> AppBasePagingRes[OrderRes]:
     """
     Args:
@@ -219,8 +221,7 @@ async def list_orders(
 
     return AppBasePagingRes[OrderRes](
         items=[
-            order_to_res(order, order.order_items, order.user)
-            for order in data["items"]
+            order_to_res(order, order.order_items, order.user) for order in data["items"]
         ],
         total=data["total"],
         page=data["page"],
@@ -262,8 +263,8 @@ async def list_orders_admin(
     uow: IUnitOfWork,
     page: int = 1,
     page_size: int = 10,
-    status: Optional[OrderStatus] = None,
-    user_id: Optional[str] = None,
+    status: OrderStatus | None = None,
+    user_id: str | None = None,
 ) -> AppBasePagingRes[OrderRes]:
     orders = await uow.order.get_all_orders(
         user_id=user_id, page=page, page_size=page_size, status=status

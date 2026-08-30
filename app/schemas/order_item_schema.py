@@ -1,7 +1,7 @@
-from pydantic import BaseModel, Field
-from uuid import UUID
 from datetime import datetime
-from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel, Field
 
 
 class _OrderItemBase(BaseModel):
@@ -19,7 +19,7 @@ class OrderItemRes(_OrderItemBase):
 
     id: str = Field(..., description="Order item ID")
     book_description: str = Field(..., description="Book description")
-    cover_image: Optional[str] = Field(
+    cover_image: str | None = Field(
         default=None, max_length=500, description="Cover image URL"
     )
     created_at: datetime

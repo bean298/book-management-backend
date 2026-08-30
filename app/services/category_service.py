@@ -1,16 +1,15 @@
 from app.db.database import IUnitOfWork
+from app.exceptions.resource_exception import NotFoundError
 from app.logging.logger import logger
+from app.models.category_model import Category
 from app.schemas.base_schema import AppBasePagingRes
-from typing import Optional
 from app.schemas.category_schema import (
+    CategoryCreateReq,
     CategoryRes,
     UpdateCategoryReq,
     category_to_res,
-    CategoryCreateReq,
     req_to_category,
 )
-from app.exceptions.resource_exception import NotFoundError
-from app.models.category_model import Category
 
 
 # Create new category
@@ -89,7 +88,7 @@ async def delete_category(category_id: str, uow: IUnitOfWork):
 # Get list categories
 async def list_categories(
     uow: IUnitOfWork,
-    keyword: Optional[str] = None,
+    keyword: str | None = None,
     page: int = 1,
     page_size: int = 10,
 ) -> AppBasePagingRes[CategoryRes]:

@@ -1,12 +1,13 @@
-from typing import Optional
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+
+from app.api.deps import require_admin
 from app.db.database import IUnitOfWork, get_uow
 from app.schemas.base_schema import AppBasePagingRes, AppBaseResponse
+from app.schemas.book_schema import BookRes, CreateBookReq, UpdateBookReq
 from app.services import book_service
-from app.schemas.book_schema import CreateBookReq, BookRes, UpdateBookReq
 from app.utils.common import Error400
-from app.api.deps import require_admin
 
 router = APIRouter(prefix="/book", tags=["Book"])
 
@@ -18,10 +19,10 @@ async def create_book(
     author_id: UUID = Form(..., description="Author ID"),
     category_id: UUID = Form(..., description="Category ID"),
     price: float = Form(..., description="Book price"),
-    published_year: Optional[int] = Form(None, description="Published year"),
+    published_year: int | None = Form(None, description="Published year"),
     quantity: int = Form(0, description="Quantity in stock"),
-    description: Optional[str] = Form(None, description="Book description"),
-    cover_image: Optional[UploadFile] = File(None, description="Cover image file"),
+    description: str | None = Form(None, description="Book description"),
+    cover_image: UploadFile | None = File(None, description="Cover image file"),
     uow: IUnitOfWork = Depends(get_uow),
     admin=Depends(require_admin),
 ):
@@ -49,7 +50,7 @@ async def create_book(
     response_model=AppBaseResponse[AppBasePagingRes[BookRes]],
 )
 async def get_books(
-    keyword: Optional[str] = None,
+    keyword: str | None = None,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1),
     uow: IUnitOfWork = Depends(get_uow),
@@ -88,12 +89,12 @@ async def get_book(
 )
 async def update_book(
     book_id: str,
-    title: Optional[str] = Form(..., description="Book title"),
-    price: Optional[float] = Form(..., description="Book price"),
-    published_year: Optional[int] = Form(None, description="Published year"),
-    quantity: Optional[int] = Form(0, description="Quantity in stock"),
-    description: Optional[str] = Form(None, description="Book description"),
-    cover_image: Optional[UploadFile] = File(None, description="Cover image file"),
+    title: str | None = Form(..., description="Book title"),
+    price: float | None = Form(..., description="Book price"),
+    published_year: int | None = Form(None, description="Published year"),
+    quantity: int | None = Form(0, description="Quantity in stock"),
+    description: str | None = Form(None, description="Book description"),
+    cover_image: UploadFile | None = File(None, description="Cover image file"),
     uow: IUnitOfWork = Depends(get_uow),
     admin=Depends(require_admin),
 ):

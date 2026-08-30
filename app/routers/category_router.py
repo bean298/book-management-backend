@@ -1,15 +1,15 @@
-from typing import Optional
 from fastapi import APIRouter, Depends, Query
+
+from app.api.deps import get_current_user, require_admin
 from app.db.database import IUnitOfWork, get_uow
 from app.schemas.base_schema import AppBasePagingRes, AppBaseResponse
-from app.services import category_service
-from app.utils.common import Error400
-from app.api.deps import require_admin, get_current_user
 from app.schemas.category_schema import (
     CategoryCreateReq,
-    UpdateCategoryReq,
     CategoryRes,
+    UpdateCategoryReq,
 )
+from app.services import category_service
+from app.utils.common import Error400
 
 router = APIRouter(prefix="/category", tags=["Category"])
 
@@ -36,7 +36,7 @@ async def create_category(
     response_model=AppBaseResponse[AppBasePagingRes[CategoryRes]],
 )
 async def get_categories(
-    keyword: Optional[str] = None,
+    keyword: str | None = None,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1),
     uow: IUnitOfWork = Depends(get_uow),

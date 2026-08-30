@@ -1,16 +1,15 @@
-from typing import Optional
 from app.db.database import IUnitOfWork
-from app.models.user_model import User
+from app.exceptions.resource_exception import NotFoundError
 from app.logging.logger import logger
+from app.models.user_model import User
 from app.schemas.base_schema import AppBasePagingRes
 from app.schemas.user_schema import (
+    UpdateUserReq,
     UserCreateReq,
     UserRes,
     req_to_user,
     user_to_res,
-    UpdateUserReq,
 )
-from app.exceptions.resource_exception import NotFoundError
 
 
 # Create new user
@@ -36,7 +35,9 @@ async def create_user(user_data: UserCreateReq, uow: IUnitOfWork) -> UserRes:
     user = req_to_user(user_data)
     new_user = await uow.users.add(user)
 
-    logger.info("User registered | id=%s, email=%s", new_user.id, new_user.email)
+    logger.info(
+        "User registered | id=%s, email=%s", new_user.id, new_user.email
+    )
     return user_to_res(new_user)
 
 
@@ -99,7 +100,7 @@ async def delete_user(user_id: str, uow: IUnitOfWork) -> UserRes:
 # Get list users
 async def list_users(
     uow: IUnitOfWork,
-    keyword: Optional[str] = None,
+    keyword: str | None = None,
     page: int = 1,
     page_size: int = 10,
 ) -> AppBasePagingRes[UserRes]:

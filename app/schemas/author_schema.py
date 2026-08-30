@@ -1,15 +1,16 @@
-from pydantic import BaseModel, Field, EmailStr
-from typing import Optional
-from uuid import UUID
-from app.models.author_model import Author
 from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+
+from app.models.author_model import Author
 
 
 class _AuthorBase(BaseModel):
     """Shared base fields for Author schemas."""
 
     name: str = Field(..., description="Name of author", max_length=255)
-    bio: Optional[str] = Field(
+    bio: str | None = Field(
         default=None, description="Biography of author", max_length=500
     )
 
@@ -31,8 +32,8 @@ class AuthorRes(_AuthorBase):
 class UpdateAuthorReq(BaseModel):
     """Schema for updating author."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    bio: Optional[str] = Field(None, min_length=1, max_length=255)
+    name: str | None = Field(None, min_length=1, max_length=255)
+    bio: str | None = Field(None, min_length=1, max_length=255)
 
 
 def req_to_author(data: AuthorCreateReq) -> Author:

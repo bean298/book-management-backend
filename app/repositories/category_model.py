@@ -1,5 +1,5 @@
-from app.orm.repository import Repository
 from app.models.category_model import Category
+from app.orm.repository import Repository
 
 
 class CategoryRepository(Repository[Category]):

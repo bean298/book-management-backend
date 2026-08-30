@@ -1,7 +1,7 @@
-from app.orm.repository import Repository
-from app.models.refresh_token_model import RefreshToken
 from sqlalchemy import select, update
+
 from app.models.refresh_token_model import RefreshToken
+from app.orm.repository import Repository
 
 
 class RefreshTokenRepository(Repository[RefreshToken]):
@@ -18,7 +18,7 @@ class RefreshTokenRepository(Repository[RefreshToken]):
     async def revoke_all_by_user(self, user_id: str) -> None:
         stmt = (
             update(RefreshToken)
-            .where(RefreshToken.user_id == user_id, RefreshToken.revoked == False)
+            .where(RefreshToken.user_id == user_id, RefreshToken.revoked == False)  # noqa: E712
             .values(revoked=True)
         )
         await self.session.execute(stmt)

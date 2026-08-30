@@ -7,16 +7,20 @@ Mission:
 3. Support paginate() with filtering, ordering, and pagination metadata
 """
 
-from typing import Generic, TypeVar, Type, Any
-from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
-from app.enum.common import OBJECT_STATUS
+from typing import Any, Generic, TypeVar
+
+from sqlalchemy import asc, desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql import Select, func
-from sqlalchemy import asc, desc, select
-from sqlalchemy.sql.elements import ColumnElement  # Represents a conditional expression
-from app.schemas.base_schema import AppBasePagingRes
+from sqlalchemy.sql.elements import (
+    ColumnElement,  # Represents a conditional expression
+)
+
 from app.constants.common import MAX_PAGE_SIZE
+from app.enum.common import OBJECT_STATUS
+from app.schemas.base_schema import AppBasePagingRes
 
 T = TypeVar("T")
 
@@ -53,7 +57,7 @@ def apply_order_by(
 
 # Class generic repository pattern for database operations
 class Repository(Generic[T]):
-    def __init__(self, session: AsyncSession, model: Type[T]):
+    def __init__(self, session: AsyncSession, model: type[T]):
         self.session = session
         self.model = model
 

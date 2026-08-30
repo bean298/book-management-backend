@@ -1,10 +1,12 @@
-from pydantic import BaseModel, Field
-from uuid import UUID
 from datetime import datetime
-from app.models.order_model import Order
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+
+from app.enum.common import OrderStatus, PaymentMethod
 from app.models.order_item_model import OrderItem
+from app.models.order_model import Order
 from app.models.user_model import User
-from app.enum.common import PaymentMethod, OrderStatus
 from app.schemas.order_item_schema import OrderItemRes
 from app.utils.image import resolve_images
 

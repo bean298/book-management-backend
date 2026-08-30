@@ -1,12 +1,15 @@
 from __future__ import annotations
-from app.orm.postgres import AppBaseMixin, Base
-from app.configs import config
+
 import uuid
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import TYPE_CHECKING
+
 from sqlalchemy import String, Text
 from sqlalchemy.dialects.postgresql import UUID
-from typing import TYPE_CHECKING, Optional
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid6 import uuid7
+
+from app.configs import config
+from app.orm.postgres import AppBaseMixin, Base
 
 if TYPE_CHECKING:
     from app.models.book_model import Book
@@ -20,7 +23,7 @@ class Author(AppBaseMixin, Base):
         UUID(as_uuid=True), primary_key=True, default=uuid7, unique=True
     )
     name: Mapped[str] = mapped_column(String(255))
-    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    bio: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationship with Book model
     books: Mapped[list[Book]] = relationship(back_populates="author")

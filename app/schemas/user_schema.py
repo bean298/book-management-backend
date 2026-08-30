@@ -1,10 +1,11 @@
-from pydantic import BaseModel, Field, EmailStr
 from datetime import datetime
 from uuid import UUID
+
+from pydantic import BaseModel, EmailStr, Field
+
 from app.enum.common import UserRole
 from app.models.user_model import User
 from app.utils.security import hash_password
-from typing import Optional
 
 
 class _UserBase(BaseModel):
@@ -34,7 +35,7 @@ class UserRes(_UserBase):
 class UpdateUserReq(BaseModel):
     """Schema for updating user."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    name: str | None = Field(None, min_length=1, max_length=255)
 
 
 def req_to_user(data: UserCreateReq) -> User:

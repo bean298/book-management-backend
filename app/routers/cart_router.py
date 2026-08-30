@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends
-from app.db.database import IUnitOfWork, get_uow
-from app.services import cart_service
+
 from app.api.deps import get_current_user, require_admin
-from app.schemas.cart_schema import CartRes
-from app.schemas.cart_item_schema import AddToCartReq, UpdateCartItemReq
-from app.schemas.base_schema import AppBaseResponse
-from app.utils.common import Error400
+from app.db.database import IUnitOfWork, get_uow
 from app.models.user_model import User
+from app.schemas.base_schema import AppBaseResponse
+from app.schemas.cart_item_schema import AddToCartReq, UpdateCartItemReq
+from app.schemas.cart_schema import CartRes
+from app.services import cart_service
+from app.utils.common import Error400
 
 router = APIRouter(prefix="/cart", tags=["Cart"])
 
@@ -43,7 +44,7 @@ async def add_to_cart(
     "/get-cart-of-user",
     summary="Get cart of user (Current user)",
 )
-async def get_category_detail(
+async def get_cart_of_user(
     uow: IUnitOfWork = Depends(get_uow),
     current_user: User = Depends(get_current_user),
 ):
@@ -60,7 +61,7 @@ async def get_category_detail(
     "/{cart_id}",
     summary="Get cart of user (Admin Only)",
 )
-async def get_category_detail(
+async def get_cart_of_user_for_admin(
     cart_id: str,
     uow: IUnitOfWork = Depends(get_uow),
     admin=Depends(require_admin),

@@ -1,26 +1,27 @@
+from datetime import UTC, datetime, timedelta
+
+from app.configs import config
 from app.db.database import IUnitOfWork
-from app.models.user_model import User
-from app.schemas.user_schema import UserCreateReq, user_to_res, req_to_user
-from app.schemas.auth_schema import TokenRes, token_to_res
-from app.utils.security import (
-    verify_password,
-    create_access_token,
-    create_refresh_token,
-    hash_token,
-)
-from app.logging.logger import logger
 from app.exceptions.auth_exception import (
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
     UserNotFoundError,
 )
-from datetime import datetime, timedelta, timezone
-from app.models.refresh_token_model import RefreshToken
 from app.exceptions.token_exception import (
     InvalidRefreshTokenError,
     RefreshTokenReusedError,
 )
-from app.configs import config
+from app.logging.logger import logger
+from app.models.refresh_token_model import RefreshToken
+from app.models.user_model import User
+from app.schemas.auth_schema import TokenRes, token_to_res
+from app.schemas.user_schema import UserCreateReq, req_to_user, user_to_res
+from app.utils.security import (
+    create_access_token,
+    create_refresh_token,
+    hash_token,
+    verify_password,
+)
 
 
 # Register new account
@@ -74,15 +75,11 @@ async def login(uow: IUnitOfWork, email: str, password: str) -> TokenRes:
         raise InvalidCredentialsError()
 
     # Create new jwt token (access token)
-    access_token = create_access_token(
-        data={"id": str(user.id), "role": user.role.value}
-    )
+    access_token = create_access_token(data={"id": str(user.id), "role": user.role.value})
 
     # Create new refresh token
     raw, token_hash = create_refresh_token()
-    expires_at = datetime.now(timezone.utc) + timedelta(
-        days=config.REFRESH_TOKEN_EXPIRE_DAYS
-    )
+    expires_at = datetime.now(UTC) + timedelta(days=config.REFRESH_TOKEN_EXPIRE_DAYS)
     await uow.refresh_tokens.add(
         RefreshToken(
             user_id=user.id,
@@ -129,13 +126,11 @@ async def refresh_token(uow: IUnitOfWork, refresh_token_raw: str) -> TokenRes:
         # User have to relogin
         await uow.refresh_tokens.revoke_all_by_user(str(stored.user_id))
         await uow.commit()
-        logger.warning(
-            "Refresh token failed: token reused | user_id=%s", stored.user_id
-        )
+        logger.warning("Refresh token failed: token reused | user_id=%s", stored.user_id)
         raise RefreshTokenReusedError()
 
     # Checked token was expired or not ?
-    if stored.revoked or stored.expires_at < datetime.now(timezone.utc):
+    if stored.revoked or stored.expires_at < datetime.now(UTC):
         logger.warning(
             "Refresh token failed: token revoked or expired | user_id=%s",
             stored.user_id,
@@ -151,9 +146,7 @@ async def refresh_token(uow: IUnitOfWork, refresh_token_raw: str) -> TokenRes:
 
     # Create new refresh token
     raw, new_hash = create_refresh_token()
-    new_exp = datetime.now(timezone.utc) + timedelta(
-        days=config.REFRESH_TOKEN_EXPIRE_DAYS
-    )
+    new_exp = datetime.now(UTC) + timedelta(days=config.REFRESH_TOKEN_EXPIRE_DAYS)
 
     # Revoke old token
     await uow.refresh_tokens.revoke(stored, replaced_by=new_hash)
@@ -167,9 +160,7 @@ async def refresh_token(uow: IUnitOfWork, refresh_token_raw: str) -> TokenRes:
         )
     )
 
-    access_token = create_access_token(
-        data={"id": str(user.id), "role": user.role.value}
-    )
+    access_token = create_access_token(data={"id": str(user.id), "role": user.role.value})
     logger.info("Refresh token successful | user_id=%s", user.id)
     return token_to_res(access_token, raw, user)
 

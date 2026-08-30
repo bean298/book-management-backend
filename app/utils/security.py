@@ -1,13 +1,14 @@
-from datetime import datetime, timedelta, timezone
-from typing import Optional
-from passlib.context import CryptContext
-from app.configs import config
-import random  # Generate auto number
-from jose.exceptions import ExpiredSignatureError
-from jose import jwt, JWTError
-from app.exceptions.token_exception import ExpiredTokenError, InvalidTokenError
-import secrets
 import hashlib
+import random  # Generate auto number
+import secrets
+from datetime import UTC, datetime, timedelta
+
+from jose import JWTError, jwt
+from jose.exceptions import ExpiredSignatureError
+from passlib.context import CryptContext
+
+from app.configs import config
+from app.exceptions.token_exception import ExpiredTokenError, InvalidTokenError
 
 RESET_LINK_EXPIRE_MINUTES = 5
 
@@ -26,7 +27,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 # --- HELPER: Create Token ---
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """
     Helper: Create JWT Token
     - Copy payload data
@@ -37,7 +38,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode = data.copy()
 
     # Token expire
-    expire = datetime.now(timezone.utc) + (
+    expire = datetime.now(UTC) + (
         expires_delta or timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode.update({"type": "access", "exp": expire})
@@ -50,7 +51,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def create_reset_token(user_id: str) -> str:
     """Create JWT contain user_id"""
 
-    expire = datetime.now(timezone.utc) + timedelta(minutes=RESET_LINK_EXPIRE_MINUTES)
+    expire = datetime.now(UTC) + timedelta(minutes=RESET_LINK_EXPIRE_MINUTES)
     payload = {"id": user_id, "type": "reset", "exp": expire}
     return jwt.encode(payload, config.JWT_SECRET_KEY, algorithm=config.JWT_ALGORITHM)
 
@@ -69,10 +70,12 @@ def verify_reset_token(reset_token: str) -> str:
             raise InvalidTokenError()
 
         return payload["id"]
-    except ExpiredSignatureError:
-        raise ExpiredTokenError("Reset token has expired. Please request a new one.")
-    except JWTError:
-        raise InvalidTokenError()
+    except ExpiredSignatureError as error:
+        raise ExpiredTokenError(
+            "Reset token has expired. Please request a new one."
+        ) from error
+    except JWTError as error:
+        raise InvalidTokenError() from error
 
 
 # --- HELPER: Generate OTP ---

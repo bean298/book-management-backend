@@ -1,16 +1,17 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
-from app.db.database import get_uow, IUnitOfWork
-from app.schemas.user_schema import UserCreateReq, UserRes
-from app.schemas.auth_schema import LoginReq, TokenRes, RefreshTokenReq
-from app.services import auth_service, password_reset_service
-from app.services.mail_service import send_welcome_email
+from fastapi import APIRouter, BackgroundTasks, Depends
+
+from app.db.database import IUnitOfWork, get_uow
+from app.schemas.auth_schema import LoginReq, RefreshTokenReq, TokenRes
 from app.schemas.password_reset_schema import (
-    MessageResponse,
     ForgetPasswordReq,
+    MessageResponse,
+    ResetPasswordReq,
     VerifyOTPReq,
     VerifyOTPRes,
-    ResetPasswordReq,
 )
+from app.schemas.user_schema import UserCreateReq, UserRes
+from app.services import auth_service, password_reset_service
+from app.services.mail_service import send_welcome_email
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 

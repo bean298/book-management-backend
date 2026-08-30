@@ -7,7 +7,7 @@ Mission:
 3. Auto-commit on success, auto-rollback on error via async context manager (__aexit__)
 """
 
-from typing import Callable, Dict
+from collections.abc import Callable
 
 # It used to create a new session for database operations,
 # server will call other requests while waiting for database response,
@@ -18,14 +18,15 @@ from sqlalchemy.ext.asyncio import (
 
 # 1 UnitOfWork = 1 request. When request to API will create a new UnitOfWork,
 # in this UnitOfWork will create a new session and all repositories
-# After request finish, will UnitOfWork will auto commit or rollback if error, and close session
+# After request finish, will UnitOfWork will auto commit or rollback if error,
+# and close session
 
 
 class UnitOfWork:
     def __init__(
         self,
         db,
-        repositories: Dict[str, Callable[[AsyncSession], object]],
+        repositories: dict[str, Callable[[AsyncSession], object]],
     ):
         self._db = db
         self._repo_factories = repositories
@@ -41,7 +42,8 @@ class UnitOfWork:
         return self
 
     # Get repository by name
-    # Push repository to _repose (cache) if not exist: because 1 request can call same repository multiple times
+    # Push repository to _repose (cache) if not exist: because 1 request can
+    # call same repository multiple times
     # Dont need to define every repository in UnitOfWork
     def __getattr__(self, name):
         if name in self._repo_factories:

@@ -1,20 +1,22 @@
+from contextlib import asynccontextmanager
+
+import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from app.configs import config
-from contextlib import asynccontextmanager
-import uvicorn
-from app.logging.logger import logger
-from app.exceptions.base_exception import BaseAppException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+
+from app.configs import config
+from app.core.docs_ui import get_swagger_ui_html
+from app.exceptions.base_exception import BaseAppException
+from app.logging.logger import logger
 from app.routers.auth_router import router as auth_router
-from app.routers.user_router import router as user_router
 from app.routers.author_router import router as author_router
-from app.routers.category_router import router as category_router
 from app.routers.book_router import router as book_router
 from app.routers.cart_router import router as cart_router
+from app.routers.category_router import router as category_router
 from app.routers.order_router import router as order_router
-from app.core.docs_ui import get_swagger_ui_html
+from app.routers.user_router import router as user_router
 
 
 @asynccontextmanager
@@ -78,8 +80,10 @@ async def custom_swagger_ui():
     return HTMLResponse(get_swagger_ui_html())
 
 
-# When user click in button in reset link mail, redirect user to URL {config.SERVER_URL}/reset-password?token={token}
-# This router will match the URL, and render html file (reset_password.html) for user to enter new password and attach token
+# When user click in button in reset link mail, redirect user to URL
+# ## {config.SERVER_URL}/reset-password?token={token}
+# This router will match the URL, and render html file (reset_password.html) for user to
+# ## enter new password and attach token
 @app.get("/reset-password", include_in_schema=False)
 async def reset_password_page(request: Request, token: str = ""):
     """Render the web page for resetting password."""

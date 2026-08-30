@@ -8,19 +8,22 @@ Mission:
 """
 
 from typing import Protocol, cast, runtime_checkable
+
 from app.configs.config import DATABASE_URL
 from app.orm.postgres import PostgresDBContext
 from app.orm.unit_of_work import UnitOfWork
-from app.repositories.user_repository import UserRepository
-from app.repositories.category_model import CategoryRepository
 from app.repositories.author_repository import AuthorRepository
 from app.repositories.book_repository import BookRepository
-from app.repositories.password_reset_repository import PasswordResetTokenRepository
-from app.repositories.refresh_token_repository import RefreshTokenRepository
-from app.repositories.cart_repository import CartRepository
 from app.repositories.cart_item_repository import CartItemRepository
-from app.repositories.order_repository import OrderRepository
+from app.repositories.cart_repository import CartRepository
+from app.repositories.category_model import CategoryRepository
 from app.repositories.order_item_repository import OrderItemRepository
+from app.repositories.order_repository import OrderRepository
+from app.repositories.password_reset_repository import (
+    PasswordResetTokenRepository,
+)
+from app.repositories.refresh_token_repository import RefreshTokenRepository
+from app.repositories.user_repository import UserRepository
 
 # Connection to database
 database = PostgresDBContext(
@@ -31,7 +34,8 @@ database = PostgresDBContext(
 @runtime_checkable
 class IUnitOfWork(Protocol):
     # Init repository for UOW
-    # Call uow.model -> UnitOfWork.__getattr__ will auto create ModelRepository(session)
+    # Call uow.model -> UnitOfWork.__getattr__ will auto create
+    # ModelRepository(session)
     users: UserRepository
     categories: CategoryRepository
     authors: AuthorRepository

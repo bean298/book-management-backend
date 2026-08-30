@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
-from app.schemas.user_schema import UserRes, user_to_res
+
 from app.models.user_model import User
+from app.schemas.user_schema import UserRes, user_to_res
 
 
 class TokenRes(BaseModel):

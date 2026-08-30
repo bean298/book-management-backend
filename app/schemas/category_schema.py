@@ -1,15 +1,16 @@
-from pydantic import BaseModel, Field
-from typing import Optional
-from uuid import UUID
-from app.models.category_model import Category
 from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+
+from app.models.category_model import Category
 
 
 class _CategoryBase(BaseModel):
     """Shared base fields for Category schemas."""
 
     name: str = Field(..., description="Name of category", max_length=255)
-    description: Optional[str] = Field(
+    description: str | None = Field(
         default=None, description="Description of category", max_length=500
     )
 
@@ -30,8 +31,8 @@ class CategoryRes(_CategoryBase):
 class UpdateCategoryReq(BaseModel):
     """Schema for updating category."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = Field(None, min_length=1, max_length=500)
+    name: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = Field(None, min_length=1, max_length=500)
 
 
 def req_to_category(data: CategoryCreateReq) -> Category:

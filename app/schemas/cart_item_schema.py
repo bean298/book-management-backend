@@ -1,7 +1,7 @@
-from pydantic import BaseModel, Field
-from uuid import UUID
 from datetime import datetime
-from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel, Field
 
 
 class _CartItemBase(BaseModel):
@@ -30,7 +30,7 @@ class CartItemRes(_CartItemBase):
     id: str = Field(..., description="Cart ID")
     book_title: str = Field(..., description="Book title")
     book_description: str = Field(..., description="Book description")
-    cover_image: Optional[str] = Field(
+    cover_image: str | None = Field(
         default=None, max_length=500, description="Cover image URL"
     )
     created_at: datetime

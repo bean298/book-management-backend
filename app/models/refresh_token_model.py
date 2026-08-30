@@ -1,11 +1,13 @@
-from app.orm.postgres import AppBaseMixin, Base
-from app.configs import config
 import uuid
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import UUID
-from uuid6 import uuid7
-from sqlalchemy import String, DateTime, Boolean, ForeignKey
 from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
+from uuid6 import uuid7
+
+from app.configs import config
+from app.orm.postgres import AppBaseMixin, Base
 
 
 class RefreshToken(AppBaseMixin, Base):
@@ -24,9 +26,13 @@ class RefreshToken(AppBaseMixin, Base):
         nullable=False,
         index=True,
     )
-    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    token_hash: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False
+    )
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    revoked: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
     replaced_by: Mapped[str | None] = mapped_column(String(64), nullable=True)

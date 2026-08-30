@@ -1,8 +1,10 @@
-from pydantic import BaseModel, Field
-from app.models.cart_model import Cart
-from app.models.cart_item_model import CartItem
-from uuid import UUID
 from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+
+from app.models.cart_item_model import CartItem
+from app.models.cart_model import Cart
 from app.schemas.cart_item_schema import CartItemRes
 from app.utils.image import resolve_images
 

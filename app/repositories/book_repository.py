@@ -1,8 +1,10 @@
-from app.orm.repository import Repository
-from app.models.book_model import Book
-from sqlalchemy import select
 import uuid
+
+from sqlalchemy import select
+
 from app.enum.common import OBJECT_STATUS
+from app.models.book_model import Book
+from app.orm.repository import Repository
 
 
 class BookRepository(Repository[Book]):
@@ -18,13 +20,14 @@ class BookRepository(Repository[Book]):
     # Get book by id for update
     async def get_by_id_for_update(self, book_id: str) -> Book | None:
         stmt = (
-            select(Book).where(
+            select(Book)
+            .where(
                 Book.id == uuid.UUID(book_id),
                 Book.object_status == OBJECT_STATUS.ACTIVE.value,
             )
             # Lock the row to prevent concurrent updates during checkout.
             .with_for_update()
-            # Refresh the existing SQLAlchemy object with the latest data from the database.
+            # Refresh the existing SQLAlchemy objs with the latest data from the database.
             # The object may already exist in the current Session with stale data,
             # so populate_existing=True overwrites it with the latest query result.
             .execution_options(populate_existing=True)

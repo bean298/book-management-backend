@@ -1,17 +1,15 @@
-from typing import Optional
 from fastapi import APIRouter, Depends, Query
+
+from app.api.deps import require_admin
 from app.db.database import IUnitOfWork, get_uow
+from app.schemas.author_schema import (
+    AuthorCreateReq,
+    AuthorRes,
+    UpdateAuthorReq,
+)
 from app.schemas.base_schema import AppBasePagingRes, AppBaseResponse
 from app.services import author_service
 from app.utils.common import Error400
-from app.api.deps import get_current_user, require_admin
-from app.schemas.author_schema import (
-    AuthorCreateReq,
-    UpdateAuthorReq,
-    author_to_res,
-    req_to_author,
-    AuthorRes,
-)
 
 router = APIRouter(prefix="/author", tags=["Author"])
 
@@ -38,7 +36,7 @@ async def create_author(
     response_model=AppBaseResponse[AppBasePagingRes[AuthorRes]],
 )
 async def get_authors(
-    keyword: Optional[str] = None,
+    keyword: str | None = None,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1),
     uow: IUnitOfWork = Depends(get_uow),
