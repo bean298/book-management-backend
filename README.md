@@ -69,7 +69,7 @@ This system supports:
 ├── Dockerfile                  # Multi-stage Docker build
 ├── env.example                 # Environment variables template
 ├── requirements.txt            # Python dependencies
-├── pyproject.toml              # Python dependencies
+├── pyproject.toml              # Ruff
 └── README.md
 ```
 
