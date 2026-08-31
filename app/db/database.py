@@ -22,6 +22,7 @@ from app.repositories.order_repository import OrderRepository
 from app.repositories.password_reset_repository import (
     PasswordResetTokenRepository,
 )
+from app.repositories.payment_repository import PaymentRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
 
@@ -46,6 +47,7 @@ class IUnitOfWork(Protocol):
     cart_items: CartItemRepository
     order: OrderRepository
     order_items: OrderItemRepository
+    payment: PaymentRepository
 
     async def commit(self) -> None: ...
     async def rollback(self) -> None: ...
@@ -68,6 +70,7 @@ def get_uow() -> IUnitOfWork:
                 "cart_items": CartItemRepository,
                 "order": OrderRepository,
                 "order_items": OrderItemRepository,
+                "payment": PaymentRepository,
             },
         ),
     )

@@ -12,6 +12,7 @@ from app.models.category_model import Category  # noqa: F401
 from app.models.order_item_model import OrderItem  # noqa: F401
 from app.models.order_model import Order  # noqa: F401
 from app.models.password_reset_model import PasswordResetToken  # noqa: F401
+from app.models.payment_model import Payment  # noqa: F401
 from app.models.refresh_token_model import RefreshToken  # noqa: F401
 from app.models.user_model import User  # noqa: F401
 from app.orm.postgres import Base

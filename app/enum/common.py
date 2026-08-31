@@ -29,3 +29,10 @@ class PaymentMethod(StrEnum):
     CASH = "cash"
     CREDIT = "bank_transfer"
     MOMO = "momo"
+
+
+class PaymentStatus(StrEnum):
+    SUCCESS = "success"
+    FAILED = "failed"
+    PENDING = "pending"
+    REFUNDED = "refunded"

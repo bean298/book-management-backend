@@ -58,7 +58,7 @@ This system supports:
 │   │   ├── repository.py       # Generic repository
 │   │   └── unit_of_work.py     # Unit of Work pattern
 │   ├── repositories/           # Data-access per entity
-│   ├── routers/                # API routes (auth, user, author, category, book, cart, order)
+│   ├── routers/                # API routes (auth, user, author, category, book, cart, order, payment)
 │   ├── schemas/                # Pydantic schemas (request/response)
 │   ├── services/               # Business logic layer
 │   ├── templates/              # Jinja2 templates (email & web)
