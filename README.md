@@ -187,8 +187,38 @@ uvicorn app.main:app --reload      #Run app
 ### 4. Run with Docker
 
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
+
+---
+
+## 🌐 Ngrok (Expose to the Internet)
+
+Add your ngrok authtoken to `.env`:
+
+```env
+NGROK_AUTHTOKEN=<your-ngrok-authtoken>
+```
+
+Run with Docker (uses the `ngrok` service in `docker-compose.yml`):
+
+```bash
+docker compose up -d --build
+```
+
+Or run locally (Remember to run app first):
+
+```bash
+ngrok http 8000
+```
+
+Get the public URL at `http://localhost:4040`, then set it as `SERVER_URL` in `.env` and restart the app so email links (reset password) work:
+
+```env
+SERVER_URL=https://<your-subdomain>.ngrok-free.app
+```
+
+> ⚠️ On the free plan, the URL changes every restart — update `SERVER_URL` again, or use a fixed domain.
 
 ---
 
