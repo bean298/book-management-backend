@@ -35,4 +35,5 @@ class PaymentStatus(StrEnum):
     SUCCESS = "success"
     FAILED = "failed"
     PENDING = "pending"
+    EXPIRED = "expired"
     REFUNDED = "refunded"

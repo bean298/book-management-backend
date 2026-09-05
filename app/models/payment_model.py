@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, Text
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid6 import uuid7
@@ -20,7 +20,16 @@ if TYPE_CHECKING:
 
 class Payment(AppBaseMixin, Base):
     __tablename__ = config.PAYMENT_TABLE
-    __table_args__ = {"schema": config.COMMERCE_SCHEMA}
+    __table_args__ = (
+        # Only one pending payment per order is allowed
+        Index(
+            "uq_payments_order_pending",
+            "order_id",
+            unique=True,
+            postgresql_where=text("status = 'PENDING'"),
+        ),
+        {"schema": config.COMMERCE_SCHEMA},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid7, unique=True
@@ -48,6 +57,9 @@ class Payment(AppBaseMixin, Base):
     )
     status: Mapped[PaymentStatus] = mapped_column(
         Enum(PaymentStatus), default=PaymentStatus.PENDING, nullable=False
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
     transaction_ref: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)

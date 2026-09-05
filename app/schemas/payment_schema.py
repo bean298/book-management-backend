@@ -39,7 +39,7 @@ class PaymentRes(BaseModel):
     created_at: datetime = Field(..., description="Payment created time")
 
 
-class CreatePaymentUrlRes(BaseModel):
+class PaymentUrlRes(BaseModel):
     """Schema returned after creating a payment URL."""
 
     payment_url: str = Field(..., description="Gateway URL to redirect the customer to")

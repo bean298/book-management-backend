@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.enum.common import OrderStatus, PaymentMethod
+from app.enum.common import OrderStatus
 from app.models.order_item_model import OrderItem
 from app.models.order_model import Order
 from app.models.user_model import User
@@ -14,7 +14,6 @@ from app.utils.image import resolve_images
 class _OrderBase(BaseModel):
     """Shared base fields for Order schemas."""
 
-    payment_method: PaymentMethod = Field(..., description="Payment method")
     shipping_address: str = Field(..., min_length=1, description="Shipping address")
 
 
@@ -46,6 +45,7 @@ class OrderRes(_OrderBase):
     total_quantity: int
     total_price: float
     status: OrderStatus
+    expires_at: datetime | None = Field(..., description="Payment deadline")
     order_items: list[OrderItemRes]
     created_at: datetime
 
@@ -57,9 +57,9 @@ def order_to_res(order: Order, order_items: list[OrderItem], user: User) -> Orde
         total_quantity=order.total_quantity,
         total_price=order.total_price,
         created_at=order.created_at,
-        payment_method=order.payment_method,
         shipping_address=order.shipping_address,
         status=order.status,
+        expires_at=order.expires_at,
         order_items=[
             OrderItemRes(
                 id=str(item.id),
