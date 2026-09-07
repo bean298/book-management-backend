@@ -17,6 +17,7 @@ class PaymentRes(BaseModel):
 
     id: str = Field(..., description="Payment ID")
     order_id: str = Field(..., description="Order ID")
+    user_id: str = Field(..., description="User ID")
     amount: float = Field(..., description="Payment amount")
     payment_method: PaymentMethod = Field(..., description="Payment method")
     status: PaymentStatus = Field(..., description="Payment status")
@@ -42,7 +43,9 @@ class PaymentRes(BaseModel):
 class PaymentUrlRes(BaseModel):
     """Schema returned after creating a payment URL."""
 
-    payment_url: str = Field(..., description="Gateway URL to redirect the customer to")
+    payment_url: str | None = Field(
+        default=None, description="Gateway URL to redirect the customer to"
+    )
     payment: PaymentRes = Field(..., description="Payment information")
 
 
