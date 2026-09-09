@@ -30,6 +30,14 @@ class PaymentMethod(StrEnum):
     CREDIT = "bank_transfer"
     MOMO = "momo"
 
+    @property
+    def label(self) -> str:
+        return {
+            PaymentMethod.CASH: "Cash (COD)",
+            PaymentMethod.CREDIT: "Bank Transfer",
+            PaymentMethod.MOMO: "Momo",
+        }[self]
+
 
 class PaymentStatus(StrEnum):
     SUCCESS = "success"
