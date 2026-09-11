@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Payment Result - Book Management</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --green: #22c55e;
+        --green-soft: #dcfce7;
+        --red: #ef4444;
+        --red-soft: #fee2e2;
+        --ink: #0f172a;
+        --muted: #64748b;
+      }
+
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: linear-gradient(135deg, #e8f7ee, #dbe9ff);
+      }
+
+      /* Card */
+      .card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 40px 32px;
+        max-width: 440px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+        text-align: center;
+        animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @keyframes fade-up {
+        from {
+          opacity: 0;
+          transform: translateY(18px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Icon */
+      .icon {
+        width: 84px;
+        height: 84px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+        font-size: 42px;
+        color: #fff;
+      }
+
+      .icon.success {
+        background: var(--green-soft);
+        box-shadow: 0 0 0 8px #d7f5e3;
+      }
+
+      .icon.failed {
+        background: var(--red-soft);
+        box-shadow: 0 0 0 8px #fde3e3;
+      }
+      .icon svg {
+        width: 58px;
+        height: 58px;
+      }
+
+      .icon circle {
+        fill: none;
+        stroke-width: 2.5;
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        animation: draw 0.7s ease forwards;
+      }
+      .icon .tick {
+        fill: none;
+        stroke-width: 4.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: draw 0.35s 0.6s ease forwards;
+      }
+      .icon .xline {
+        fill: none;
+        stroke-width: 4.5;
+        stroke-linecap: round;
+        stroke-dasharray: 36;
+        stroke-dashoffset: 36;
+        animation: draw 0.35s 0.6s ease forwards;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+      }
+
+      .badge.success {
+        background: var(--green-soft);
+        color: #15803d;
+      }
+      .badge.failed {
+        background: var(--red-soft);
+        color: #b91c1c;
+      }
+      @keyframes draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+
+      /* Title */
+      h1 {
+        font-size: 24px;
+        color: #1a1a2e;
+        margin-bottom: 8px;
+      }
+
+      /* Subtitle */
+      .sub {
+        color: #777;
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+
+      /* Reason */
+      .reason {
+        color: #c0392b;
+        background: #fff0f0;
+        border: 1px solid #f5c6cb;
+        border-radius: 10px;
+        padding: 12px;
+        font-weight: 600;
+        margin-bottom: 20px;
+      }
+
+      /* Detail */
+      .details {
+        text-align: left;
+        background: #f8fafc;
+        border: 1px solid #eef2f7;
+        border-radius: 12px;
+        padding: 8px 16px;
+        margin-bottom: 24px;
+      }
+
+      /* Row */
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 10px 0;
+        font-size: 14px;
+        border-bottom: 1px dashed #e5e7eb;
+      }
+
+      .row:last-child {
+        border-bottom: none;
+      }
+
+      .row .label {
+        color: #888;
+      }
+
+      .row .value {
+        color: #1f2937;
+        font-weight: 600;
+        text-align: right;
+      }
+
+      /* BTN */
+      .btn {
+        display: inline-block;
+        width: 100%;
+        padding: 14px;
+        background: #667eea;
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background 0.2s;
+      }
+
+      .btn:hover {
+        background: #5a6fd6;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Card -->
+    <div class="card">
+      <!-- Success case -->
+      {% if status == "success" %}
+      <!-- Icon -->
+      <div class="icon success">
+        <svg viewBox="0 0 52 52" aria-hidden="true">
+          <circle cx="26" cy="26" r="24" stroke="#22c55e" />
+          <path class="tick" stroke="#22c55e" d="M15 27l7.5 7.5L37 19" />
+        </svg>
+      </div>
+      <span class="badge success">Success</span>
+      <h1>Payment Successful</h1>
+      <p class="sub">
+        Your order has been confirmed and will be processed shortly.
+      </p>
+
+      <!-- Fail case -->
+      {% else %}
+      <!-- Icon -->
+      <div class="icon failed">
+        <svg viewBox="0 0 52 52" aria-hidden="true">
+          <circle cx="26" cy="26" r="24" stroke="#ef4444" />
+          <path class="xline" stroke="#ef4444" d="M19 19l14 14" />
+          <path class="xline" stroke="#ef4444" d="M33 19L19 33" />
+        </svg>
+      </div>
+      <span class="badge failed">Failed</span>
+      <h1>Payment Failed</h1>
+      <p class="sub">The transaction was not completed. Please try again.</p>
+
+      <!-- Message fail -->
+      {% if message %}
+      <div class="reason">{{ message }}</div>
+      {% endif %} {% endif %}
+
+      <!-- Detail information -->
+      <div class="details">
+        <!-- Order id -->
+        {% if order_id %}
+        <div class="row">
+          <span class="label">Order ID</span>
+          <span class="value">{{ order_id }}</span>
+        </div>
+
+        <!-- Transaction Reference -->
+        {% endif %} {% if txn_ref %}
+        <div class="row">
+          <span class="label">Transaction Reference</span>
+          <span class="value">{{ txn_ref }}</span>
+        </div>
+
+        <!-- VNPay Transaction ID -->
+        {% endif %} {% if gateway_txn_no %}
+        <div class="row">
+          <span class="label">VNPay Transaction ID</span>
+          <span class="value">{{ gateway_txn_no }}</span>
+        </div>
+
+        <!-- Payment Method -->
+        {% endif %} {% if method %}
+        <div class="row">
+          <span class="label">Payment Method</span>
+          <span class="value">{{ method }}</span>
+        </div>
+
+        <!-- Payment Date -->
+        {% endif %} {% if pay_date %}
+        <div class="row">
+          <span class="label">Payment Date</span>
+          <span class="value">{{ pay_date }}</span>
+        </div>
+
+        <!-- Amount -->
+        {% endif %} {% if amount %}
+        <div class="row">
+          <span class="label">Amount</span>
+          <span class="value">{{ amount }} VND</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- BTN -->
+      <a class="btn" href="/docs">Back to Swagger UI docs</a>
+    </div>
+  </body>
+</html>
