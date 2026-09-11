@@ -82,8 +82,9 @@ This system supports:
 - Refresh access token
 - View book/categories/authors
 - Add book to cart
-- Checkout products in cart
 - Request password reset via OTP (Mobile) or email link (Web)
+- Checkout products in cart
+- Using VNPay to bank tranfer
 
 ### 🧑‍💼 Admin
 - Full CRUD users (with pagination & keyword search)
