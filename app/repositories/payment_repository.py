@@ -15,3 +15,9 @@ class PaymentRepository(Repository[Payment]):
         stmt = select(Payment).where(Payment.order_id == uuid.UUID(str(order_id)))
         result = await self.session.execute(stmt)
         return result.scalars().all()
+
+    # Def to get payment by transaction_ref
+    async def get_payment_by_transaction_ref(self, transaction_ref: str) -> Payment:
+        stmt = select(Payment).where(Payment.transaction_ref == transaction_ref)
+        result = await self.session.execute(stmt)
+        return result.scalars().first()

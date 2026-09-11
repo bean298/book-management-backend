@@ -91,6 +91,36 @@ async def reset_password_page(request: Request, token: str = ""):
     return templates.TemplateResponse(request, "reset_password.html", {"token": token})
 
 
+# Simulate case return to front-end
+@app.get("/payment-result", include_in_schema=False)
+async def payment_result(
+    request: Request,
+    status: str = "failed",
+    message: str = "",
+    txn_ref: str = "",
+    order_id: str = "",
+    amount: str = "",
+    gateway_txn_no: str = "",
+    method: str = "",
+    pay_date: str = "",
+):
+    """Render success/fail page"""
+    return templates.TemplateResponse(
+        request,
+        "payment_result.html",
+        {
+            "status": status,
+            "message": message,
+            "txn_ref": txn_ref,
+            "order_id": order_id,
+            "amount": amount,
+            "gateway_txn_no": gateway_txn_no,
+            "method": method,
+            "pay_date": pay_date,
+        },
+    )
+
+
 # Include Routers
 app.include_router(auth_router)
 app.include_router(user_router)
