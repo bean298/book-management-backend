@@ -82,8 +82,8 @@
       .icon circle {
         fill: none;
         stroke-width: 2.5;
-        stroke-dasharray: 166;
-        stroke-dashoffset: 166;
+        stroke-dasharray: 166; /* A single 166-long dash covers the whole circle. */
+        stroke-dashoffset: 166; /* Shift the dash. */
         animation: draw 0.7s ease forwards;
       }
       .icon .tick {
@@ -218,6 +218,7 @@
       <div class="icon success">
         <svg viewBox="0 0 52 52" aria-hidden="true">
           <circle cx="26" cy="26" r="24" stroke="#22c55e" />
+          <!-- Icon -->
           <path class="tick" stroke="#22c55e" d="M15 27l7.5 7.5L37 19" />
         </svg>
       </div>
@@ -233,7 +234,9 @@
       <div class="icon failed">
         <svg viewBox="0 0 52 52" aria-hidden="true">
           <circle cx="26" cy="26" r="24" stroke="#ef4444" />
+          <!-- Icon \ -->
           <path class="xline" stroke="#ef4444" d="M19 19l14 14" />
+          <!-- Icon / -->
           <path class="xline" stroke="#ef4444" d="M33 19L19 33" />
         </svg>
       </div>
