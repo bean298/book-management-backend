@@ -1,3 +1,6 @@
+from datetime import UTC, datetime, timedelta
+
+from app.configs import config
 from app.db.database import IUnitOfWork
 from app.enum.common import OrderStatus, UserRole
 from app.exceptions.resource_exception import NotFoundError
@@ -76,8 +79,10 @@ async def checkout(
             total_quantity=sum(item.quantity for item in cart_items),
             total_price=sum(item.quantity * item.unit_price for item in cart_items),
             status=OrderStatus.PENDING,
-            payment_method=data.payment_method,
             shipping_address=data.shipping_address,
+            # Set expires_at: current time + PAYMENT_EXPIRY_MINUTES
+            expires_at=datetime.now(UTC)
+            + timedelta(minutes=config.PAYMENT_EXPIRY_MINUTES),
         )
     )
 
