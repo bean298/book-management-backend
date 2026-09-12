@@ -186,5 +186,32 @@ async def _apply_callback_into_db(vnpay: dict, uow: IUnitOfWork) -> tuple[str, s
     else:
         payment.status = PaymentStatus.FAILED
         payment.error_message = f"VNPay response code: {vnpay.get('vnp_ResponseCode')}"
+        payment.expires_at = None
+
+        # Case user cancel payment, then cancel order and restock book
+        response_code = vnpay.get("vnp_ResponseCode", "")
+        if response_code == "24":
+            order = await uow.order.get_order_by_id_with_items(str(payment.order_id))
+            if order and order.status == OrderStatus.PENDING:
+                order.status = OrderStatus.CANCELLED
+                order.expires_at = None
+
+                # Restock book quantity
+                for item in order.order_items:
+                    book = await uow.books.get_by_id_for_update(str(item.book_id))
+                    if book:
+                        book.quantity += item.quantity
+                        logger.info(
+                            "Restock book | book_id=%s, quantity=%s, order_id=%s",
+                            book.id,
+                            item.quantity,
+                            order.id,
+                        )
+
+                logger.info(
+                    "Order cancelled due to customer cancel | order_id=%s, code=%s",
+                    order.id,
+                    response_code,
+                )
 
     return "00", "Confirm payment result from successful"
