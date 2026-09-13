@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from app.configs import config
 from app.db.database import IUnitOfWork
-from app.enum.common import OrderStatus, UserRole
+from app.enum.common import OrderStatus, PaymentStatus, UserRole
 from app.exceptions.resource_exception import NotFoundError
 from app.logging.logger import logger
 from app.models.order_item_model import OrderItem
@@ -285,3 +285,53 @@ async def list_orders_admin(
         page_size=orders["page_size"],
         is_full=orders["is_full"],
     )
+
+
+# Cancel all pending orders that have expires_at without successful payment
+async def cancel_expired_order(uow: IUnitOfWork) -> int:
+    now = datetime.now(UTC)
+
+    # Get expired pending order
+    orders = await uow.order.get_expired_pending_orders(now)
+
+    cancelled_count = 0
+
+    for order in orders:
+        # Check payment: pass if status SUCCESS
+        payments = await uow.payment.get_list_by_order_id(str(order.id))
+        if any(payment.status == PaymentStatus.SUCCESS for payment in payments):
+            logger.warning("Skip order has successful payment | order_id=%s", order.id)
+            continue
+
+        # If payment is PENDING translate into EXPIRED
+        for payment in payments:
+            if payment.status == PaymentStatus.PENDING:
+                payment.status = PaymentStatus.EXPIRED
+                payment.error_message = "Order expired before payment"
+
+        # Cancel order
+        order.status = OrderStatus.CANCELLED
+
+        # Restock book quantity
+        for item in order.order_items:
+            book = await uow.books.get_by_id_for_update(str(item.book_id))
+            if not book:
+                raise NotFoundError("Book", str(item.book_id))
+            book.quantity += item.quantity
+            logger.info(
+                "Restock book | book_id=%s, quantity=%s, order_id=%s",
+                book.id,
+                item.quantity,
+                order.id,
+            )
+
+        cancelled_count += 1
+        logger.info(
+            "Order expired -> cancelled | order_id=%s, expires_at=%s",
+            order.id,
+            order.expires_at,
+        )
+
+    await uow.commit()
+
+    return cancelled_count
