@@ -27,6 +27,7 @@ This system supports:
 - Swagger UI
 - Uvicorn
 - Docker & Docker Compose
+- VNPay
 
 ---
 
@@ -50,6 +51,7 @@ This system supports:
 │   ├── enum/
 │   │   └── common.py           # Enums (UserRole, ResetMethod, ...)
 │   ├── exceptions/             # Custom exceptions & error codes
+│   ├── jobs/                   # Background jobs
 │   ├── logging/
 │   │   └── logger.py           # Logging configuration
 │   ├── models/                 # SQLAlchemy models (ORM)
@@ -61,10 +63,9 @@ This system supports:
 │   ├── routers/                # API routes (auth, user, author, category, book, cart, order, payment)
 │   ├── schemas/                # Pydantic schemas (request/response)
 │   ├── services/               # Business logic layer
-│   ├── templates/              # Jinja2 templates (email & web)
-│   └── utils/                  # Helpers (security, mail, slug, image)
+│   ├── templates/              # Jinja2 templates (email & web & payment result)
+│   └── utils/                  # Helpers (security, mail, slug, image, vnpay)
 ├── logs/                       # Application log files
-├── test_data/                  # Seed data (authors, categories, books JSON)
 ├── docker-compose.yml          # Docker services (db, minio, api)
 ├── Dockerfile                  # Multi-stage Docker build
 ├── env.example                 # Environment variables template
@@ -95,7 +96,7 @@ This system supports:
 ## 🗄 Database
 - PostgreSQL 16
 - Database name: `book_management`
-- Schemas: `auth (users, password_reset, refresh_token)` & `book (books, authors, categories)`
+- Schemas: `auth (users, password_reset, refresh_token)` & `book (books, authors, categories)` & `commerce (orders, carts, payments)`
 
 ---
 
