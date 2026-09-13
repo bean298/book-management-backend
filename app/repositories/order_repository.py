@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -119,3 +120,18 @@ class OrderRepository(Repository[Order]):
             "page_size": page_size,
             "is_full": page_size * page >= total,
         }
+
+    # Def to get expired pending order
+    async def get_expired_pending_orders(self, now: datetime) -> list[Order]:
+        stmt = (
+            select(Order)
+            .options(selectinload(Order.order_items).selectinload(OrderItem.book))
+            .where(
+                Order.status == OrderStatus.PENDING,
+                Order.expires_at.is_not(None),
+                Order.expires_at < now,
+            )
+            .order_by(Order.created_at.asc())
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().unique().all()
