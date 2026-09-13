@@ -288,7 +288,7 @@ async def list_orders_admin(
 
 
 # Cancel all pending orders that have expires_at without successful payment
-async def cancel_expired_order(uow: IUnitOfWork) -> int:
+async def cancel_expired_orders(uow: IUnitOfWork) -> int:
     now = datetime.now(UTC)
 
     # Get expired pending order
