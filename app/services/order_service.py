@@ -15,6 +15,7 @@ from app.schemas.order_schema import (
     UpdateOrderReq,
     order_to_res,
 )
+from app.services.cart_service import restore_order_items_to_cart
 
 
 # Checkout
@@ -191,6 +192,9 @@ async def update_order(
                 order.id,
             )
 
+        # Restore cart items of user
+        await restore_order_items_to_cart(str(user.id), order.order_items, uow)
+
     logger.info(
         "Order updated | order_id=%s, from=%s, to=%s, by_user_id=%s",
         order.id,
@@ -324,6 +328,9 @@ async def cancel_expired_orders(uow: IUnitOfWork) -> int:
                 item.quantity,
                 order.id,
             )
+
+        # Restore cart items of user
+        await restore_order_items_to_cart(str(order.user_id), order.order_items, uow)
 
         cancelled_count += 1
         logger.info(

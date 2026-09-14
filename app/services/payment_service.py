@@ -10,6 +10,7 @@ from app.exceptions.resource_exception import NotFoundError
 from app.logging.logger import logger
 from app.models.payment_model import Payment
 from app.schemas.payment_schema import CreatePaymentReq, PaymentUrlRes, payment_to_res
+from app.services.cart_service import restore_order_items_to_cart
 from app.utils.vnpay import build_payment_url, parse_vnpay_date, verify_payment
 
 
@@ -207,6 +208,11 @@ async def _apply_callback_into_db(vnpay: dict, uow: IUnitOfWork) -> tuple[str, s
                             item.quantity,
                             order.id,
                         )
+
+                # Restore cart items of user
+                await restore_order_items_to_cart(
+                    str(order.user_id), order.order_items, uow
+                )
 
                 logger.info(
                     "Order cancelled due to customer cancel | order_id=%s, code=%s",

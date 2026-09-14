@@ -5,6 +5,7 @@ from app.exceptions.resource_exception import NotFoundError
 from app.logging.logger import logger
 from app.models.cart_item_model import CartItem
 from app.models.cart_model import Cart
+from app.models.order_item_model import OrderItem
 from app.schemas.cart_item_schema import AddToCartReq, UpdateCartItemReq
 from app.schemas.cart_schema import CartRes, cart_to_res
 
@@ -277,6 +278,46 @@ async def delete_cart_item(cart_item_id: str, user_id: str, uow: IUnitOfWork) ->
         cart.total_quantity,
         cart.total_price,
     )
+
+
+# Def to restore order items into cart
+async def restore_order_items_to_cart(
+    user_id: str, order_items: list[OrderItem], uow: IUnitOfWork
+) -> None:
+    """
+    Args:
+        user_id (str): [description]
+        order_items (list[OrderItem]): [description]
+        uow (IUnitOfWork): [description]
+
+    Returns:
+        [type]: [description]
+    """
+
+    # Get cart of user
+    cart = await uow.cart.get_cart_by_user_id(str(user_id))
+
+    for item in order_items:
+        await uow.cart_items.add(
+            CartItem(
+                cart_id=cart.id,
+                book_id=item.book_id,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+            )
+        )
+        logger.info(
+            "Restore cart: new item | cart_id=%s, book_id=%s, quantity=%s",
+            cart.id,
+            item.book_id,
+            item.quantity,
+        )
+
+    cart_items = await uow.cart_items.get_list_by_cart_id(str(cart.id))
+    await _recalculate_cart_totals(cart, cart_items)
+
+
+# ----- HEPER -----
 
 
 # Create cart if not exist, Get cart if existed
