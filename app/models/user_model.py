@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Enum, String
+from sqlalchemy import BigInteger, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from uuid6 import uuid7
@@ -20,6 +20,7 @@ class User(AppBaseMixin, Base):
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    phone: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole), default=UserRole.CUSTOMER, nullable=False
     )
