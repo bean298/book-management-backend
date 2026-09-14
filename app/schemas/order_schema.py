@@ -35,6 +35,7 @@ class OrderUserRes(BaseModel):
     id: UUID = Field(..., description="User ID")
     name: str = Field(..., description="User name")
     email: str = Field(..., description="User email")
+    phone: int = Field(..., description="User phone")
 
 
 class OrderRes(_OrderBase):
@@ -53,7 +54,7 @@ class OrderRes(_OrderBase):
 def order_to_res(order: Order, order_items: list[OrderItem], user: User) -> OrderRes:
     return OrderRes(
         id=str(order.id),
-        user=OrderUserRes(id=user.id, name=user.name, email=user.email),
+        user=OrderUserRes(id=user.id, name=user.name, email=user.email, phone=user.phone),
         total_quantity=order.total_quantity,
         total_price=order.total_price,
         created_at=order.created_at,
