@@ -21,7 +21,6 @@ DATABASE_URL = (
 )
 
 # JWT
-# ⚠️ Override JWT_SECRET_KEY in production
 JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", default="dev-secret-change-me")
 JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", default="HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
