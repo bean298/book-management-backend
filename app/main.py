@@ -9,8 +9,7 @@ from fastapi.templating import Jinja2Templates
 from app.configs import config
 from app.core.docs_ui import get_swagger_ui_html
 from app.exceptions.base_exception import BaseAppException
-from app.jobs.order_jobs import shutdown_order_scheduler, start_order_scheduler
-from app.jobs.token_jobs import shutdown_token_scheduler, start_token_scheduler
+from app.jobs.scheduler import shutdown_all_jobs, start_all_jobs
 from app.logging.logger import logger
 from app.routers.auth_router import router as auth_router
 from app.routers.author_router import router as author_router
@@ -26,13 +25,11 @@ from app.routers.user_router import router as user_router
 async def lifespan(app: FastAPI):
     logger.info("App startup")
 
-    start_order_scheduler()
-    start_token_scheduler()
+    start_all_jobs()
 
     yield
 
-    shutdown_order_scheduler()
-    shutdown_token_scheduler()
+    shutdown_all_jobs()
 
     logger.info("App shutdown")
 

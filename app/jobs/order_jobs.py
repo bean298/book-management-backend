@@ -5,8 +5,6 @@ from app.db.database import get_uow
 from app.logging.logger import logger
 from app.services.order_service import cancel_expired_orders
 
-scheduler = AsyncIOScheduler()
-
 
 # Def to call cancel_expired_orders()
 async def run_cancel_expired_orders_job() -> None:
@@ -16,7 +14,7 @@ async def run_cancel_expired_orders_job() -> None:
 
 
 # Def to run the order scheduler once in every 30s
-def start_order_scheduler() -> None:
+def register_order_jobs(scheduler: AsyncIOScheduler) -> None:
     scheduler.add_job(
         run_cancel_expired_orders_job,
         trigger=IntervalTrigger(seconds=30),
@@ -24,11 +22,4 @@ def start_order_scheduler() -> None:
         replace_existing=True,
         max_instances=1,
     )
-    scheduler.start()
-    logger.info("Order scheduler started")
-
-
-# Def to shutdown order scheduler
-def shutdown_order_scheduler() -> None:
-    scheduler.shutdown(wait=False)
-    logger.info("Order scheduler stopped")
+    logger.info("Order job registered")
