@@ -134,15 +134,17 @@ async def payment_result(
     )
 
 
+API_PREFIX = "/api/v1"
+
 # Include Routers
-app.include_router(auth_router)
-app.include_router(user_router)
-app.include_router(author_router)
-app.include_router(category_router)
-app.include_router(book_router)
-app.include_router(cart_router)
-app.include_router(order_router)
-app.include_router(payment_router)
+app.include_router(auth_router, prefix=API_PREFIX)
+app.include_router(user_router, prefix=API_PREFIX)
+app.include_router(author_router, prefix=API_PREFIX)
+app.include_router(category_router, prefix=API_PREFIX)
+app.include_router(book_router, prefix=API_PREFIX)
+app.include_router(cart_router, prefix=API_PREFIX)
+app.include_router(order_router, prefix=API_PREFIX)
+app.include_router(payment_router, prefix=API_PREFIX)
 
 
 if __name__ == "__main__":
