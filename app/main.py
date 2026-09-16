@@ -10,6 +10,7 @@ from app.configs import config
 from app.core.docs_ui import get_swagger_ui_html
 from app.exceptions.base_exception import BaseAppException
 from app.jobs.order_jobs import shutdown_order_scheduler, start_order_scheduler
+from app.jobs.token_jobs import shutdown_token_scheduler, start_token_scheduler
 from app.logging.logger import logger
 from app.routers.auth_router import router as auth_router
 from app.routers.author_router import router as author_router
@@ -26,10 +27,12 @@ async def lifespan(app: FastAPI):
     logger.info("App startup")
 
     start_order_scheduler()
+    start_token_scheduler()
 
     yield
 
     shutdown_order_scheduler()
+    shutdown_token_scheduler()
 
     logger.info("App shutdown")
 

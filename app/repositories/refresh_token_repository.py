@@ -1,4 +1,6 @@
-from sqlalchemy import select, update
+from datetime import datetime
+
+from sqlalchemy import delete, select, update
 
 from app.models.refresh_token_model import RefreshToken
 from app.orm.repository import Repository
@@ -28,3 +30,17 @@ class RefreshTokenRepository(Repository[RefreshToken]):
         token.revoked = True
         if replaced_by:
             token.replaced_by = replaced_by
+
+    # Delete used (revoked & replaced) refresh tokens that have expired
+    async def delete_expired_refresh_tokens(self, now: datetime) -> int:
+        stmt = (
+            delete(RefreshToken)
+            .where(
+                RefreshToken.revoked.is_(True),
+                RefreshToken.replaced_by.is_not(None),
+                RefreshToken.expires_at < now,
+            )
+            .returning(RefreshToken.id)
+        )
+        result = await self.session.execute(stmt)
+        return len(result.scalars().all())

@@ -180,3 +180,12 @@ async def logout(uow: IUnitOfWork, refresh_token_raw: str) -> None:
         logger.info("Logout successful | user_id=%s", stored.user_id)
     else:
         logger.warning("Logout failed: refresh token not found")
+
+
+# Delete expired token
+async def delete_expired_token(uow: IUnitOfWork) -> int:
+    now = datetime.now(UTC)
+
+    deleted = await uow.refresh_tokens.delete_expired_refresh_tokens(now)
+    await uow.commit()
+    return deleted
