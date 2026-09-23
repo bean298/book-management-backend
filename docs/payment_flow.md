@@ -162,3 +162,62 @@ Location: /payment-result?status=success&message=Payment+successful&txn_ref=019e
 
 > This route lives in `app/main.py` (not in `payment_router`). It renders the `payment_result.html` template with the query-string values produced by `process_return`.
 
+---
+
+## 4. Case 1 — Create payment
+
+### Payload
+
+```http
+POST /payment?order_id=019e4b6e-... HTTP/1.1
+Authorization: Bearer <access_token>
+
+{"method": "bank_transfer"}
+```
+
+### Flow
+
+```mermaid
+sequenceDiagram
+    participant FE as Frontend
+    participant RT as payment_router
+    participant SV as payment_service
+    participant RP as Repositories
+    participant VNP as VNPay Gateway
+
+    FE->>RT: POST /payment?order_id=... {method}
+    RT->>RT: get_current_user (JWT) + get_uow
+    RT->>SV: create_payment(order_id, user_id, data, uow, ip)
+    SV->>RP: get_order_by_id_with_items(order_id)
+    alt Invalid (missing / not owner / not PENDING / expired)
+        SV-->>RT: raise NotFoundError / ValueError
+        RT-->>FE: 404 / Error400
+    else Valid
+        SV->>RP: get_list_by_order_id(order_id)
+        alt Has a pending payment
+            SV-->>RT: raise ValueError
+            RT-->>FE: Error400
+        else No pending payment
+            SV->>RP: add Payment(PENDING, transaction_ref=uuid4)
+            alt method == CASH
+                SV-->>RT: payment_url = null
+            else method != CASH
+                SV->>SV: build_payment_url + HMAC SHA512
+                SV-->>RT: payment_url (VNPay)
+            end
+            RT-->>FE: AppBaseResponse{payment_url, payment}
+        end
+    end
+```
+
+### Validation chain
+
+`create_payment` performs 5 checks **in order** before creating the payment record:
+
+| # | Check | Fail → | Why? |
+|---|---|---|---|
+| 1 | Order exists | `NotFoundError("Order", order_id)` → 404 | A payment can only reference an existing order — otherwise `order.total_price` and `order.id` would fail |
+| 2 | `order.user_id == current_user.id` (owner) | `NotFoundError("Order", order_id)` → 404 | Only the buyer can pay for their own order; 404 (not 403) hides the existence of other users' orders |
+| 3 | `order.status == PENDING` | `ValueError("Order is not in PENDING state")` → 400 | Only an order awaiting payment can be paid — prevents re-paying an already confirmed/cancelled order |
+| 4 | `order.expires_at` not passed | `ValueError("Order payment deadline has expired")` → 400 | Orders have a payment deadline; blocking expired orders prevents paying for a no-longer-valid order |
+| 5 | No existing payment with `status == PENDING` | `ValueError("Order already has a pending payment")` → 400 | One pending payment per order — prevents duplicate payments and avoids double charging the buyer |
