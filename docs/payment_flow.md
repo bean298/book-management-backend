@@ -66,3 +66,99 @@ Ordered top-down, following the request path:
 | `app/configs/config.py` | VNPay config: `VNPAY_TMN_CODE`, `VNPAY_URL`, `VNPAY_RETURN_URL`, `VNPAY_HASH_SECRET`, `PAYMENT_EXPIRY_MINUTES` |
 | `app/templates/payment_result.html` | Success/fail result page rendered by `/payment-result` |
 
+---
+
+## 3. API Endpoints
+
+`app/router/payment_router.py`
+
+| # | Method & Path | Auth | Purpose |
+|---|---|---|---|
+| 3.1 | `POST /payment` | ✅ Bearer JWT | Create a payment for an order, returns a gateway URL |
+| 3.2 | `GET /payment/vnpay/return` | ❌ (signature) | VNPay callback after user pays at the gateway |
+| 3.3 | `GET /payment-result` | ❌ | Render the success/fail result page |
+
+### 3.1 `POST /payment` — Create payment
+
+| Aspect | Value |
+|---|---|
+| Method / Path | `POST /payment` |
+| Auth | Required — `Authorization: Bearer <access_token>` (`get_current_user`) |
+| Query param | `order_id` (required) |
+| Body | `CreatePaymentReq` → `{"method": "cash" \| "bank_transfer" \| "momo"}` |
+| Success | `200` — `AppBaseResponse[PaymentUrlRes]` |
+| Business error | `Error400` (e.g. order not PENDING, duplicate pending payment) |
+| Not found | `404` — `NotFoundError` (order does not exist or not owned) |
+
+**Request**
+
+```http
+POST /payment?order_id=019e4b6e-... HTTP/1.1
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{"method": "bank_transfer"}
+```
+
+**Response (VNPay method)**
+
+```json
+{
+  "data": {
+    "payment_url": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Version=2.1.0&vnp_Command=pay&...&vnp_SecureHash=...",
+    "payment": {
+      "id": "019e4c11-...",
+      "order_id": "019e4b6e-...",
+      "user_id": "019d5f2a-...",
+      "amount": 250000.0,
+      "payment_method": "bank_transfer",
+      "status": "pending",
+      "transaction_ref": "019e4c11-...",
+      "gateway_txn_no": null,
+      "bank_code": null,
+      "pay_date": null,
+      "ip_address": "127.0.0.1",
+      "error_message": null,
+      "created_at": "2026-09-23T07:30:00Z"
+    }
+  },
+  "message": "Payment created successfully"
+}
+```
+
+> For `method = "cash"`, `payment_url` is `null` (no gateway redirect — paid on delivery).
+
+### 3.2 `GET /payment/vnpay/return` — VNPay callback
+
+| Aspect | Value |
+|---|---|
+| Method / Path | `GET /payment/vnpay/return` |
+| Auth | None — secured by VNPay's HMAC SHA512 signature |
+| Query params | Everything VNPay sends back (`vnp_*` + `vnp_SecureHash`) |
+| Response | `307` — `RedirectResponse` to `/payment-result?...` |
+| In docs | `include_in_schema=False` (hidden from Swagger) |
+
+**Request (from VNPay)**
+
+```http
+GET /payment/vnpay/return?vnp_Amount=25000000&vnp_BankCode=NCB&vnp_OrderInfo=Payment+for+order+...&vnp_PayDate=20260923143000&vnp_ResponseCode=00&vnp_TmnCode=...&vnp_TransactionNo=...&vnp_TxnRef=019e4c11-...&vnp_SecureHash=... HTTP/1.1
+```
+
+**Response (redirect)**
+
+```http
+HTTP/1.1 307 Temporary Redirect
+Location: /payment-result?status=success&message=Payment+successful&txn_ref=019e4c11-...&order_id=...&amount=250%2C000&gateway_txn_no=...&method=Bank+Transfer&pay_date=14%3A30+23%2F09%2F2026
+```
+
+### 3.3 `GET /payment-result` — Result page
+
+| Aspect | Value |
+|---|---|
+| Method / Path | `GET /payment-result` |
+| Auth | None |
+| Query params | `status`, `message`, `txn_ref`, `order_id`, `amount`, `gateway_txn_no`, `method`, `pay_date` |
+| Response | `200` — HTML (`payment_result.html`) |
+
+> This route lives in `app/main.py` (not in `payment_router`). It renders the `payment_result.html` template with the query-string values produced by `process_return`.
+
