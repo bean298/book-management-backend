@@ -143,7 +143,7 @@ async def process_return(params: dict, uow: IUnitOfWork) -> str:
     return f"/payment-result?{urlencode(payment_result)}"
 
 
-# HELPER: Update payment, order model after VNPay callback
+# HELPER: Update payment (database), order model after VNPay callback
 async def _apply_callback_into_db(vnpay: dict, uow: IUnitOfWork) -> tuple[str, str]:
 
     # Get payment by transaction ref
