@@ -221,3 +221,131 @@ sequenceDiagram
 | 3 | `order.status == PENDING` | `ValueError("Order is not in PENDING state")` → 400 | Only an order awaiting payment can be paid — prevents re-paying an already confirmed/cancelled order |
 | 4 | `order.expires_at` not passed | `ValueError("Order payment deadline has expired")` → 400 | Orders have a payment deadline; blocking expired orders prevents paying for a no-longer-valid order |
 | 5 | No existing payment with `status == PENDING` | `ValueError("Order already has a pending payment")` → 400 | One pending payment per order — prevents duplicate payments and avoids double charging the buyer |
+
+### Trace — file by file
+
+#### 4.1 `app/routers/payment_router.py`
+
+```python
+@router.post("/", response_model=AppBaseResponse[PaymentUrlRes], summary="Create a payment for an order")
+async def create_payment(
+    data: CreatePaymentReq,                               # {"method": "bank_transfer"}
+    order_id: str = Query(..., description="Order ID"),   # order_id = "019e4b6e-..."
+    uow: IUnitOfWork = Depends(get_uow),                  # UnitOfWork (1 session)
+    current_user: User = Depends(get_current_user),       # decoded from JWT
+    request: Request = None,
+):
+    async with uow:            # start session, commit/rollback on exit
+        try:
+            client_ip = request.client.host if request and request.client else "127.0.0.1"
+            # client_ip = "127.0.0.1"
+
+            response = await payment_service.create_payment(
+                order_id=order_id, user_id=current_user.id, data=data,
+                uow=uow, ip_address=client_ip,
+            )
+            return AppBaseResponse(data=response, message="Payment created successfully")
+        except ValueError as ex:
+            return Error400(str(ex))
+```
+
+> `NotFoundError` is a `BaseAppException` handled globally by `app/main.py`; `ValueError` is caught here and turned into `Error400`.
+
+#### 4.2 `app/services/payment_service.py` — `create_payment`
+
+```python
+async def create_payment(order_id, user_id, data, uow, ip_address="127.0.0.1") -> PaymentUrlRes:
+    # ---- Check 1: order exists ----
+    order = await uow.order.get_order_by_id_with_items(order_id)
+    # order = Order(id=..., user_id=..., status=PENDING, total_price=250000.0,
+    #               expires_at=2026-09-23 07:40:00+00:00, order_items=[...])
+    if not order:
+        raise NotFoundError("Order", order_id)
+
+    # ---- Check 2: owner ----
+    if str(order.user_id) != str(user_id):
+        raise NotFoundError("Order", order_id)
+
+    # ---- Check 3: PENDING ----
+    if order.status != OrderStatus.PENDING:
+        raise ValueError("Order is not in PENDING state")
+
+    # ---- Check 4: expired ----
+    now = datetime.now(UTC)                                   # 2026-09-23 07:30:00+00:00
+    if order.expires_at and order.expires_at < now:
+        raise ValueError("Order payment deadline has expired")
+
+    # ---- Check 5: no pending payment yet ----
+    payments = await uow.payment.get_list_by_order_id(order_id)
+    if any(payment.status == PaymentStatus.PENDING for payment in payments):
+        raise ValueError("Order already has a pending payment")
+
+    # ---- Create payment ----
+    payment = await uow.payment.add(
+        Payment(
+            user_id=order.user_id,
+            order_id=order.id,
+            amount=order.total_price,                         # 250000.0
+            payment_method=data.method,                       # PaymentMethod.CREDIT ("bank_transfer")
+            status=PaymentStatus.PENDING,
+            expires_at=now + timedelta(minutes=config.PAYMENT_EXPIRY_MINUTES),
+            # expires_at = 07:30:00 + 10 min = 07:40:00
+            transaction_ref=str(uuid4()),                     # unique txn_ref for the gateway
+            ip_address=ip_address,
+        )
+    )
+
+    # ---- Build gateway URL ----
+    if data.method == PaymentMethod.CASH:
+        payment_url = None                             # COD → no redirect
+    else:
+        payment_url = build_payment_url(
+            amount=payment.amount,
+            txn_ref=payment.transaction_ref,
+            order_desc=f"Payment for order {order.id}",
+            ip_address=ip_address,
+            expire_at=order.expires_at,                # NOTE: order.expires_at, not payment.expires_at
+        )
+
+    return PaymentUrlRes(payment_url=payment_url, payment=payment_to_res(payment))
+```
+
+#### 4.3 `app/utils/vnpay.py` — `build_payment_url` + `_secure_hash`
+
+```python
+def build_payment_url(*, amount, txn_ref, order_desc, ip_address, expire_at) -> str:
+    now = datetime.now(VN_TIMEZONE)
+    params = {
+        "vnp_Version": "2.1.0",
+        "vnp_Command": "pay",
+        "vnp_TmnCode": config.VNPAY_TMN_CODE,
+        "vnp_Amount": str(int(round(amount * 100))),          # 250000.0 * 100 = 25000000 (VND ×100)
+        "vnp_CurrCode": "VND",
+        "vnp_TxnRef": txn_ref,                                # the uuid4 transaction_ref
+        "vnp_OrderInfo": order_desc,                          # "Payment for order ..."
+        "vnp_OrderType": "250000",
+        "vnp_Locale": "vn",
+        "vnp_CreateDate": now.strftime("%Y%m%d%H%M%S"),
+        "vnp_ExpireDate": expire_at.astimezone(VN_TIMEZONE).strftime("%Y%m%d%H%M%S"),
+        "vnp_IpAddr": ip_address,
+        "vnp_ReturnUrl": config.VNPAY_RETURN_URL,             # .../api/v1/payment/vnpay/return
+    }
+
+    params["vnp_SecureHash"] = _secure_hash(params)           # HMAC SHA512 over all vnp_* fields
+    return f"{config.VNPAY_URL}?{urlencode(params)}"
+```
+
+```python
+def _secure_hash(params: dict[str, str]) -> str:
+    raw = urlencode(sorted(params.items()))                   # sort keys → canonical string
+    return hmac.new(
+        config.VNPAY_HASH_SECRET.encode("utf-8"),
+        raw.encode("utf-8"),
+        hashlib.sha512,
+    ).hexdigest()
+```
+
+
+---
+
+
