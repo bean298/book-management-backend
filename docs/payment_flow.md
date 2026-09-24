@@ -19,16 +19,6 @@ flowchart LR
     VNP -->|"GET /payment/vnpay/return"| RT
 ```
 
-### Layer responsibilities
-
-| Layer | Question | Location |
-|---|---|---|
-| Router | "Which HTTP request is coming in?" | `app/routers/payment_router.py` |
-| Service | "What business rules apply?" | `app/services/payment_service.py` |
-| Repository | "How to read/write the database?" | `app/repositories/payment_repository.py`, `app/repositories/order_repository.py` |
-| VNPay Utils | "How to sign & verify with the gateway?" | `app/utils/vnpay.py` |
-| DB / UnitOfWork | "One request = one transaction" | `app/orm/unit_of_work.py` |
-
 ### Core principles
 
 - `payment_router` is the **only** HTTP entry point for payment requests.
@@ -43,124 +33,38 @@ flowchart LR
 
 Ordered top-down, following the request path:
 
-| File | Role |
-|---|---|
-| `app/main.py` | App wiring; defines `/payment-result` page (renders `payment_result.html`) |
-| `app/routers/payment_router.py` | HTTP entry: `POST /payment` and `GET /payment/vnpay/return` |
-| `app/api/deps.py` | `get_current_user` dependency — decodes JWT, returns `User` |
-| `app/services/payment_service.py` | Business logic: `create_payment`, `process_return`, `_apply_callback_into_db` |
-| `app/services/cart_service.py` | `restore_order_items_to_cart` — restore cart after user cancel |
-| `app/utils/vnpay.py` | VNPay helpers: `_secure_hash`, `build_payment_url`, `verify_payment`, `parse_vnpay_date` |
-| `app/constants/vnpay.py` | `VNP_ERROR_MESSAGES` — map response code → message |
-| `app/repositories/payment_repository.py` | `Payment` queries: `get_list_by_order_id`, `get_payment_by_transaction_ref` |
-| `app/repositories/order_repository.py` | `Order` queries: `get_order_by_id_with_items` |
-| `app/repositories/book_repository.py` | `Book` queries: `get_by_id_for_update` (restock on cancel) |
-| `app/repositories/cart_repository.py` | `Cart` queries: `get_cart_by_user_id` |
-| `app/repositories/cart_item_repository.py` | `CartItem` queries: `add`, `get_list_by_cart_id` |
-| `app/models/payment_model.py` | ORM model `Payment` |
-| `app/models/order_model.py` | ORM model `Order` (+ `order_items` relationship) |
-| `app/schemas/payment_schema.py` | Schemas: `CreatePaymentReq`, `PaymentRes`, `PaymentUrlRes` |
-| `app/enum/common.py` | Enums: `PaymentMethod`, `PaymentStatus`, `OrderStatus` |
-| `app/orm/unit_of_work.py` | `UnitOfWork` — one DB transaction per HTTP request |
-| `app/db/database.py` | `get_uow()` factory + repository registrations |
-| `app/configs/config.py` | VNPay config: `VNPAY_TMN_CODE`, `VNPAY_URL`, `VNPAY_RETURN_URL`, `VNPAY_HASH_SECRET`, `PAYMENT_EXPIRY_MINUTES` |
-| `app/templates/payment_result.html` | Success/fail result page rendered by `/payment-result` |
+| Layer | File | Role |
+|---|---|---|
+| Router | `app/routers/payment_router.py` | HTTP entry: `POST /payment` and `GET /payment/vnpay/return` |
+| Dep | `app/api/deps.py` | `get_current_user` dependency — decodes JWT, returns `User` |
+| Main | `app/main.py` | App wiring; defines `/payment-result` page (renders `payment_result.html`) |
+| Service | `app/services/payment_service.py` | Business logic: `create_payment`, `process_return`, `_apply_callback_into_db` |
+|  | `app/services/cart_service.py` | `restore_order_items_to_cart` — restore cart after user cancel |
+| Utils | `app/utils/vnpay.py` | VNPay helpers: `_secure_hash`, `build_payment_url`, `verify_payment`, `parse_vnpay_date` |
+|  | `app/constants/vnpay.py` | `VNP_ERROR_MESSAGES` — map response code → message |
+| Repository | `app/repositories/payment_repository.py` | `Payment` queries: `get_list_by_order_id`, `get_payment_by_transaction_ref` |
+|  | `app/repositories/order_repository.py` | `Order` queries: `get_order_by_id_with_items` |
+|  | `app/repositories/book_repository.py` | `Book` queries: `get_by_id_for_update` (restock on cancel) |
+|  | `app/repositories/cart_repository.py` | `Cart` queries: `get_cart_by_user_id` |
+|  | `app/repositories/cart_item_repository.py` | `CartItem` queries: `add`, `get_list_by_cart_id` |
+| Model | `app/models/payment_model.py` | ORM model `Payment` |
+|  | `app/models/order_model.py` | ORM model `Order` (+ `order_items` relationship) |
+| Schema | `app/schemas/payment_schema.py` | Schemas: `CreatePaymentReq`, `PaymentRes`, `PaymentUrlRes` |
+| Common | `app/enum/common.py` | Enums: `PaymentMethod`, `PaymentStatus`, `OrderStatus` |
+| ORM | `app/orm/unit_of_work.py` | `UnitOfWork` — one DB transaction per HTTP request |
+| DB | `app/db/database.py` | `get_uow()` factory + repository registrations |
+| Config | `app/configs/config.py` | VNPay config: `VNPAY_TMN_CODE`, `VNPAY_URL`, `VNPAY_RETURN_URL`, `VNPAY_HASH_SECRET`, `PAYMENT_EXPIRY_MINUTES` |
+| Template | `app/templates/payment_result.html` | Success/fail result page rendered by `/payment-result` |
 
 ---
 
 ## 3. API Endpoints
 
-`app/router/payment_router.py`
-
 | # | Method & Path | Auth | Purpose |
 |---|---|---|---|
-| 3.1 | `POST /payment` | ✅ Bearer JWT | Create a payment for an order, returns a gateway URL |
-| 3.2 | `GET /payment/vnpay/return` | ❌ (signature) | VNPay callback after user pays at the gateway |
-| 3.3 | `GET /payment-result` | ❌ | Render the success/fail result page |
-
-### 3.1 `POST /payment` — Create payment
-
-| Aspect | Value |
-|---|---|
-| Method / Path | `POST /payment` |
-| Auth | Required — `Authorization: Bearer <access_token>` (`get_current_user`) |
-| Query param | `order_id` (required) |
-| Body | `CreatePaymentReq` → `{"method": "cash" \| "bank_transfer" \| "momo"}` |
-| Success | `200` — `AppBaseResponse[PaymentUrlRes]` |
-| Business error | `Error400` (e.g. order not PENDING, duplicate pending payment) |
-| Not found | `404` — `NotFoundError` (order does not exist or not owned) |
-
-**Request**
-
-```http
-POST /payment?order_id=019e4b6e-... HTTP/1.1
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{"method": "bank_transfer"}
-```
-
-**Response (VNPay method)**
-
-```json
-{
-  "data": {
-    "payment_url": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Version=2.1.0&vnp_Command=pay&...&vnp_SecureHash=...",
-    "payment": {
-      "id": "019e4c11-...",
-      "order_id": "019e4b6e-...",
-      "user_id": "019d5f2a-...",
-      "amount": 250000.0,
-      "payment_method": "bank_transfer",
-      "status": "pending",
-      "transaction_ref": "019e4c11-...",
-      "gateway_txn_no": null,
-      "bank_code": null,
-      "pay_date": null,
-      "ip_address": "127.0.0.1",
-      "error_message": null,
-      "created_at": "2026-09-23T07:30:00Z"
-    }
-  },
-  "message": "Payment created successfully"
-}
-```
-
-> For `method = "cash"`, `payment_url` is `null` (no gateway redirect — paid on delivery).
-
-### 3.2 `GET /payment/vnpay/return` — VNPay callback
-
-| Aspect | Value |
-|---|---|
-| Method / Path | `GET /payment/vnpay/return` |
-| Auth | None — secured by VNPay's HMAC SHA512 signature |
-| Query params | Everything VNPay sends back (`vnp_*` + `vnp_SecureHash`) |
-| Response | `307` — `RedirectResponse` to `/payment-result?...` |
-| In docs | `include_in_schema=False` (hidden from Swagger) |
-
-**Request (from VNPay)**
-
-```http
-GET /payment/vnpay/return?vnp_Amount=25000000&vnp_BankCode=NCB&vnp_OrderInfo=Payment+for+order+...&vnp_PayDate=20260923143000&vnp_ResponseCode=00&vnp_TmnCode=...&vnp_TransactionNo=...&vnp_TxnRef=019e4c11-...&vnp_SecureHash=... HTTP/1.1
-```
-
-**Response (redirect)**
-
-```http
-HTTP/1.1 307 Temporary Redirect
-Location: /payment-result?status=success&message=Payment+successful&txn_ref=019e4c11-...&order_id=...&amount=250%2C000&gateway_txn_no=...&method=Bank+Transfer&pay_date=14%3A30+23%2F09%2F2026
-```
-
-### 3.3 `GET /payment-result` — Result page
-
-| Aspect | Value |
-|---|---|
-| Method / Path | `GET /payment-result` |
-| Auth | None |
-| Query params | `status`, `message`, `txn_ref`, `order_id`, `amount`, `gateway_txn_no`, `method`, `pay_date` |
-| Response | `200` — HTML (`payment_result.html`) |
-
-> This route lives in `app/main.py` (not in `payment_router`). It renders the `payment_result.html` template with the query-string values produced by `process_return`.
+| 3.1 | `POST /payment` | ✅ Bearer JWT | Create a payment for an order. |
+| 3.2 | `GET /payment/vnpay/return` | ❌ (signature) | VNPay callback. Receives all `vnp_*` params + `vnp_SecureHash`, verifies HMAC SHA512. Returns `307 RedirectResponse` → `/payment-result?...`. Hidden from Swagger (`include_in_schema=False`). |
+| 3.3 | `GET /payment-result` | ❌ | Renders `payment_result.html` with query params. Defined in `app/main.py`. |
 
 ---
 
@@ -349,21 +253,29 @@ def _secure_hash(params: dict[str, str]) -> str:
 ---
 
 
-## 5. Case 2 — VNPay callback SUCCESS (`00`)
+## 5. Case 2 — VNPay callback (success / fail / cancel)
 
 ### Payload
 
-After the user pays at the gateway, VNPay redirects the browser to `VNPAY_RETURN_URL` with a signed query string:
+VNPay redirects the browser to `VNPAY_RETURN_URL` with a signed query string. The outcome is decided by `vnp_ResponseCode`:
 
 ```http
 GET /payment/vnpay/return?vnp_Amount=25000000&vnp_BankCode=NCB&vnp_BankTranNo=...&vnp_CardType=...&vnp_OrderInfo=Payment+for+order+...&vnp_PayDate=20260923143000&vnp_ResponseCode=00&vnp_TmnCode=...&vnp_TransactionNo=...&vnp_TxnRef=019e4c11-...&vnp_SecureHash=... HTTP/1.1
 ```
 
+Outcome by response code:
+
+| `vnp_ResponseCode` | Outcome | DB side effects |
+|---|---|---|
+| `00` | success | `payment=SUCCESS` + `order=CONFIRMED` |
+| `24` | user cancel | `payment=FAILED` + `order=CANCELLED` + restock books + restore cart |
+| other | fail | `payment=FAILED` only |
+
 Key fields:
 
 | Field | Example | Meaning |
 |---|---|---|
-| `vnp_ResponseCode` | `00` | Gateway result — `00` = success |
+| `vnp_ResponseCode` | `00` / `24` | Gateway result — `00` = success, `24` = customer canceled |
 | `vnp_TxnRef` | `019e4c11-...` | The `transaction_ref` set at payment creation |
 | `vnp_Amount` | `25000000` | Paid amount in VND ×100 (compare with `payment.amount * 100`) |
 | `vnp_TransactionNo` | `...` | Gateway's own transaction number |
@@ -382,20 +294,20 @@ sequenceDiagram
     VNP->>RT: GET /payment/vnpay/return?params...+vnp_SecureHash
     RT->>SV: process_return(params, uow)
     SV->>SV: verify_payment(params) -> HMAC SHA512
-    alt Signature invalid
-        SV-->>RT: status=invalid, message="Signature in invalid"
-    else Signature valid
-        SV->>SV: code, detail = _apply_callback_into_db(vnp, uow)
-        Note over SV: guards: exists / amount / PENDING<br/>if pass -> payment SUCCESS or FAILED
-        SV->>RP: get_payment_by_transaction_ref(vnp_TxnRef)
-        alt code == "00" (applied)
-            SV->>SV: response_code "00" -> success<br/>else -> failed + VNP_ERROR_MESSAGES
-        else code == "02" (replayed)
-            SV->>SV: payment.status SUCCESS -> success<br/>else -> failed + detail
-        else code "01" / "04" (guard failed)
-            SV->>SV: failed + detail
-        end
-        SV-->>RT: payment_result{status, message, order_id, amount,...}
+    SV->>SV: code, detail = _apply_callback_into_db(vnp, uow)
+    SV->>RP: get_payment_by_transaction_ref(vnp_TxnRef)
+    alt response_code == "00" (success)
+        SV->>RP: payment SUCCESS + order CONFIRMED
+        SV-->>RT: status=success, "Payment successful"
+    else response_code == "24" (cancel)
+        SV->>RP: payment FAILED + order CANCELLED
+        SV->>RP: restock books + restore cart
+        SV-->>RT: status=failed, "Customer canceled..."
+    else other fail code
+        SV->>RP: payment FAILED only
+        SV-->>RT: status=failed
+    else guard failed / replay / bad signature
+        SV-->>RT: failed + detail (success on replay)
     end
     RT-->>FE: RedirectResponse("/payment-result?...")
 ```
@@ -518,11 +430,11 @@ def verify_payment(params: dict[str, str]) -> dict[str, str]:
         # collect all vnp_* fields EXCEPT vnp_SecureHash
 
     # recompute HMAC SHA512 from received fields
-    expected = _secure_hash(vnp_params)   
+    expected = _secure_hash(vnp_params)
 
      # constant-time comparison
     if not hmac.compare_digest(expected, secure_hash):
-        raise ValueError("Invalid VNPay signature") 
+        raise ValueError("Invalid VNPay signature")
 
     return vnp_params
 ```
@@ -533,13 +445,12 @@ def verify_payment(params: dict[str, str]) -> dict[str, str]:
 async def _apply_callback_into_db(vnpay: dict, uow: IUnitOfWork) -> tuple[str, str]:
     # ---- Guard 1: payment exists ----
     payment = await uow.payment.get_payment_by_transaction_ref(vnpay["vnp_TxnRef"])
-    # payment = Payment(status=PENDING, amount=250000.0, transaction_ref="019e4c11-...")
     if not payment:
         return "01", "Order not found"
 
     # ---- Guard 2: amount matches ----
-    vnp_amount = int(vnpay.get("vnp_Amount", "0"))          # 25000000
-    expected_amount = int(round(payment.amount * 100))      # 250000.0 * 100 = 25000000
+    vnp_amount = int(vnpay.get("vnp_Amount", "0"))
+    expected_amount = int(round(payment.amount * 100))
     if vnp_amount != expected_amount:
         return "04", "Invalid amount"
 
@@ -549,13 +460,12 @@ async def _apply_callback_into_db(vnpay: dict, uow: IUnitOfWork) -> tuple[str, s
 
     payment.raw_callback = vnpay  # store the raw callback for audit
 
-    # ---- Guard 4: success vs failed ----
+    # ---- Success branch ----
     if vnpay.get("vnp_ResponseCode") == "00":
         payment.status = PaymentStatus.SUCCESS
         payment.gateway_txn_no = vnpay.get("vnp_TransactionNo")
         payment.bank_code = vnpay.get("vnp_BankCode")
         payment.pay_date = parse_vnpay_date(vnpay.get("vnp_PayDate"))
-        # pay_date = 2026-09-23 14:30:00+07:00 (parsed from "20260923143000")
         payment.expires_at = None
 
         # Promote the order PENDING → CONFIRMED
@@ -563,9 +473,48 @@ async def _apply_callback_into_db(vnpay: dict, uow: IUnitOfWork) -> tuple[str, s
         if order and order.status == OrderStatus.PENDING:
             order.status = OrderStatus.CONFIRMED
             order.expires_at = None
+
+    # ---- Fail branch ----
     else:
         payment.status = PaymentStatus.FAILED
-        # ... (Case 3 covers the cancel branch)
+        payment.error_message = f"VNPay response code: {vnpay.get('vnp_ResponseCode')}"
+        payment.expires_at = None
+
+        if vnpay.get("vnp_ResponseCode", "") == "24":   # user cancel → full rollback
+            order = await uow.order.get_order_by_id_with_items(str(payment.order_id))
+            if order and order.status == OrderStatus.PENDING:
+                order.status = OrderStatus.CANCELLED
+                order.expires_at = None
+
+                for item in order.order_items:           # restock
+                    book = await uow.books.get_by_id_for_update(str(item.book_id))
+                    if book:
+                        book.quantity += item.quantity
+
+                await restore_order_items_to_cart(       # restore cart
+                    str(order.user_id), order.order_items, uow
+                )
 
     return "00", "Confirm payment result from successful"
 ```
+
+#### 5.5 `app/services/cart_service.py` — `restore_order_items_to_cart`
+
+```python
+async def restore_order_items_to_cart(user_id, order_items, uow) -> None:
+    cart = await uow.cart.get_cart_by_user_id(str(user_id))
+
+    for item in order_items:
+        await uow.cart_items.add(
+            CartItem(
+                cart_id=cart.id,
+                book_id=item.book_id,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+            )
+        )
+
+    cart_items = await uow.cart_items.get_list_by_cart_id(str(cart.id))
+    await _recalculate_cart_totals(cart, cart_items)   # re-sum totals
+```
+
