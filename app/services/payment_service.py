@@ -95,22 +95,35 @@ async def process_return(params: dict, uow: IUnitOfWork) -> str:
         # Verify payment
         vnp = verify_payment(params)
 
-        # Get res code and set status/message
-        response_code = vnp.get("vnp_ResponseCode", "")
-        status = "success" if response_code == "00" else "failed"
-        message = (
-            "Payment successful"
-            if status == "success"
-            else VNP_ERROR_MESSAGES.get(response_code, "Payment failed")
-        )
-
         # Update order, payment in database
-        await _apply_callback_into_db(vnp, uow)
+        code, detail = await _apply_callback_into_db(vnp, uow)
 
         # Get payment by transaction_ref
         payment = await uow.payment.get_payment_by_transaction_ref(
             vnp.get("vnp_TxnRef", "")
         )
+
+        # Apply into DB successful
+        if code == "00":
+            # Payment success
+            if vnp.get("vnp_ResponseCode") == "00":
+                status, message = "success", "Payment successful"
+            # Payment fail
+            else:
+                status = "failed"
+                message = VNP_ERROR_MESSAGES.get(
+                    vnp.get("vnp_ResponseCode"), "Payment failed"
+                )
+        elif code == "02":
+            if payment and payment.status == PaymentStatus.SUCCESS:
+                status, message = "success", "Payment successful"
+            else:
+                status, message = "failed", detail
+
+        # Apply into DB fail
+        else:
+            status, message = "failed", detail
+
     except ValueError:
         pass
     except Exception:
