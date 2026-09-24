@@ -93,6 +93,12 @@ This system supports:
 
 ---
 
+## 📑 Documentation
+
+For detailed, step-by-step explanations of how each feature works under the hood, see the [Flows & Logic Notes](docs/FLOWS.md) — it indexes the payment, checkout, password reset, and background job flows.
+
+---
+
 ## 🗄 Database
 - PostgreSQL 16
 - Database name: `book_management`
@@ -105,7 +111,6 @@ This system supports:
 - Bucket: `book-management-bucket`
 
 ---
-
 
 ## 🧹 Code Quality (Ruff)
 
