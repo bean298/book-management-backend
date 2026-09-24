@@ -349,3 +349,223 @@ def _secure_hash(params: dict[str, str]) -> str:
 ---
 
 
+## 5. Case 2 — VNPay callback SUCCESS (`00`)
+
+### Payload
+
+After the user pays at the gateway, VNPay redirects the browser to `VNPAY_RETURN_URL` with a signed query string:
+
+```http
+GET /payment/vnpay/return?vnp_Amount=25000000&vnp_BankCode=NCB&vnp_BankTranNo=...&vnp_CardType=...&vnp_OrderInfo=Payment+for+order+...&vnp_PayDate=20260923143000&vnp_ResponseCode=00&vnp_TmnCode=...&vnp_TransactionNo=...&vnp_TxnRef=019e4c11-...&vnp_SecureHash=... HTTP/1.1
+```
+
+Key fields:
+
+| Field | Example | Meaning |
+|---|---|---|
+| `vnp_ResponseCode` | `00` | Gateway result — `00` = success |
+| `vnp_TxnRef` | `019e4c11-...` | The `transaction_ref` set at payment creation |
+| `vnp_Amount` | `25000000` | Paid amount in VND ×100 (compare with `payment.amount * 100`) |
+| `vnp_TransactionNo` | `...` | Gateway's own transaction number |
+| `vnp_PayDate` | `20260923143000` | Payment time (`YYYYMMDDHHMMSS`) |
+| `vnp_SecureHash` | `...` | HMAC SHA512 over all `vnp_*` fields |
+
+### Flow
+
+```mermaid
+sequenceDiagram
+    participant VNP as VNPay
+    participant RT as payment_router
+    participant SV as payment_service
+    participant RP as Repositories
+
+    VNP->>RT: GET /payment/vnpay/return?params...+vnp_SecureHash
+    RT->>SV: process_return(params, uow)
+    SV->>SV: verify_payment(params) -> HMAC SHA512
+    alt Signature invalid
+        SV-->>RT: status=invalid, message="Signature in invalid"
+    else Signature valid
+        SV->>SV: code, detail = _apply_callback_into_db(vnp, uow)
+        Note over SV: guards: exists / amount / PENDING<br/>if pass -> payment SUCCESS or FAILED
+        SV->>RP: get_payment_by_transaction_ref(vnp_TxnRef)
+        alt code == "00" (applied)
+            SV->>SV: response_code "00" -> success<br/>else -> failed + VNP_ERROR_MESSAGES
+        else code == "02" (replayed)
+            SV->>SV: payment.status SUCCESS -> success<br/>else -> failed + detail
+        else code "01" / "04" (guard failed)
+            SV->>SV: failed + detail
+        end
+        SV-->>RT: payment_result{status, message, order_id, amount,...}
+    end
+    RT-->>FE: RedirectResponse("/payment-result?...")
+```
+
+### Callback verification chain
+
+`_apply_callback_into_db` performs 4 guards **in order** before mutating anything:
+
+| # | Guard | Fail → | Why? |
+|---|---|---|---|
+| 1 | Payment exists (`vnp_TxnRef` matches a row) | return `("01", "Order not found")` | The callback must reference a real payment created earlier |
+| 2 | `vnp_Amount == payment.amount * 100` | return `("04", "Invalid amount")` | Detect a tampered/incorrect amount — never trust the gateway blindly |
+| 3 | `payment.status == PENDING` | return `("02", "Order already confirmed")` | Payment must be PENDING |
+| 4 | `vnp_ResponseCode == "00"` | treat as FAILED | The gateway result decides success vs failure |
+
+> `process_return` now **catches** the code returned by `_apply_callback_into_db` and maps it to the user-facing `status`/`message`:
+> - `"00"` (applied) → success/failed decided by the gateway `vnp_ResponseCode`
+> - `"02"` (replayed) → read the real `payment.status` (still `success` if already SUCCESS)
+> - `"01"` / `"04"` (guard failed) → `failed` with the guard's `detail`
+
+### Trace — file by file
+
+#### 5.1 `app/routers/payment_router.py` — `vnpay_return`
+
+```python
+@router.get("/vnpay/return", include_in_schema=False)
+async def vnpay_return(
+    request: Request,
+    uow: IUnitOfWork = Depends(get_uow),
+):
+    params = dict(request.query_params)
+    # params = {"vnp_Amount": "25000000", ..., "vnp_ResponseCode": "00", ...,
+    #           "vnp_TxnRef": "019e4c11-...", "vnp_SecureHash": "..."}
+
+    async with uow:
+        redirect_url = await payment_service.process_return(params, uow)
+    return RedirectResponse(url=redirect_url)
+    # → 307 to /payment-result?status=success&message=Payment+successful&...
+```
+
+#### 5.2 `app/services/payment_service.py` — `process_return`
+
+```python
+async def process_return(params: dict, uow: IUnitOfWork) -> str:
+    status = "invalid"
+    message = "Signature in invalid"
+    payment = None
+
+    try:
+        # ---- 1. Verify signature ----
+        vnp = verify_payment(params)
+        # vnp = {"vnp_Amount": "25000000", ..., "vnp_ResponseCode": "00", ...}
+        # (vnp_SecureHash removed — it was used for the comparison only)
+
+        # ---- 2. Apply callback into DB & CATCH the result code ----
+        code, detail = await _apply_callback_into_db(vnp, uow)
+        # code = "00" (applied) | "01" (not found) | "04" (amount) | "02" (replayed)
+
+        # ---- 3. Reload payment to build the result page data ----
+        payment = await uow.payment.get_payment_by_transaction_ref(
+            vnp.get("vnp_TxnRef", "")
+        )
+
+        # ---- 4. Map code → status/message ----
+        if code == "00":
+            # applied: the gateway result decides
+            if vnp.get("vnp_ResponseCode") == "00":
+                status, message = "success", "Payment successful"
+            else:
+                status = "failed"
+                message = VNP_ERROR_MESSAGES.get(
+                    vnp.get("vnp_ResponseCode"), "Payment failed"
+                )
+        elif code == "02":
+            # replayed callback: show the real payment state
+            if payment and payment.status == PaymentStatus.SUCCESS:
+                status, message = "success", "Payment successful"
+            else:
+                status, message = "failed", detail
+        else:
+            # "01" (not found) or "04" (amount mismatch)
+            status, message = "failed", detail
+    except ValueError:
+        pass                         # bad signature → keep "invalid"
+    except Exception:
+        logger.exception("Return callback error")
+        message = "System error, please try again"
+
+    payment_result = {
+        "status": status,
+        "message": message,
+        "txn_ref": params.get("vnp_TxnRef", ""),
+    }
+
+    if payment:
+        payment_result.update({
+            "order_id": str(payment.order_id),
+            "amount": f"{payment.amount:,.0f}",
+            "gateway_txn_no": payment.gateway_txn_no or "",
+            "method": payment.payment_method.label,
+            "pay_date": (
+                payment.pay_date.strftime("%H:%M %d/%m/%Y")
+                if payment.pay_date else ""
+            ),
+        })
+
+    return f"/payment-result?{urlencode(payment_result)}"
+```
+
+#### 5.3 `app/utils/vnpay.py` — `verify_payment`
+
+```python
+def verify_payment(params: dict[str, str]) -> dict[str, str]:
+    secure_hash = params.get("vnp_SecureHash", "")
+
+    vnp_params = {}
+    for key, value in params.items():
+        if key.startswith("vnp_") and key != "vnp_SecureHash":
+            vnp_params[key] = value
+        # collect all vnp_* fields EXCEPT vnp_SecureHash
+
+    # recompute HMAC SHA512 from received fields
+    expected = _secure_hash(vnp_params)   
+
+     # constant-time comparison
+    if not hmac.compare_digest(expected, secure_hash):
+        raise ValueError("Invalid VNPay signature") 
+
+    return vnp_params
+```
+
+#### 5.4 `app/services/payment_service.py` — `_apply_callback_into_db`
+
+```python
+async def _apply_callback_into_db(vnpay: dict, uow: IUnitOfWork) -> tuple[str, str]:
+    # ---- Guard 1: payment exists ----
+    payment = await uow.payment.get_payment_by_transaction_ref(vnpay["vnp_TxnRef"])
+    # payment = Payment(status=PENDING, amount=250000.0, transaction_ref="019e4c11-...")
+    if not payment:
+        return "01", "Order not found"
+
+    # ---- Guard 2: amount matches ----
+    vnp_amount = int(vnpay.get("vnp_Amount", "0"))          # 25000000
+    expected_amount = int(round(payment.amount * 100))      # 250000.0 * 100 = 25000000
+    if vnp_amount != expected_amount:
+        return "04", "Invalid amount"
+
+    # ---- Guard 3: still pending ----
+    if payment.status != PaymentStatus.PENDING:
+        return "02", "Order already confirmed"
+
+    payment.raw_callback = vnpay  # store the raw callback for audit
+
+    # ---- Guard 4: success vs failed ----
+    if vnpay.get("vnp_ResponseCode") == "00":
+        payment.status = PaymentStatus.SUCCESS
+        payment.gateway_txn_no = vnpay.get("vnp_TransactionNo")
+        payment.bank_code = vnpay.get("vnp_BankCode")
+        payment.pay_date = parse_vnpay_date(vnpay.get("vnp_PayDate"))
+        # pay_date = 2026-09-23 14:30:00+07:00 (parsed from "20260923143000")
+        payment.expires_at = None
+
+        # Promote the order PENDING → CONFIRMED
+        order = await uow.order.get_order_by_id_with_items(str(payment.order_id))
+        if order and order.status == OrderStatus.PENDING:
+            order.status = OrderStatus.CONFIRMED
+            order.expires_at = None
+    else:
+        payment.status = PaymentStatus.FAILED
+        # ... (Case 3 covers the cancel branch)
+
+    return "00", "Confirm payment result from successful"
+```
