@@ -198,6 +198,28 @@ async def list_payments_admin(
     )
 
 
+# Get payment of user (current user)
+async def get_payment_of_user(user_id: str, uow: IUnitOfWork) -> list[PaymentRes]:
+    """
+    Args:
+        user_id (str): [description]
+        uow (IUnitOfWork): [description]
+
+    Raises:
+        NotFoundError: [description]
+
+    Returns:
+        list[PaymentRes]: [description]
+    """
+    payments = await uow.payment.get_payment_by_user_id(str(user_id))
+    if not payments:
+        logger.warning("Payment not found | user_id=%s", user_id)
+        raise NotFoundError()
+
+    logger.info("Get payments of user | user_id=%s, count=%s", user_id, len(payments))
+    return [payment_to_res(p) for p in payments]
+
+
 # ----------------- HELPER -----------------
 
 

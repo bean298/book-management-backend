@@ -81,3 +81,20 @@ async def list_payments_admin(
             page_size=page_size,
         )
         return AppBaseResponse[AppBasePagingRes[PaymentRes]](data=payments)
+
+
+# Get payment of current user
+@router.get(
+    "/get-payment-of-user",
+    summary="Get payment of user (Current user)",
+)
+async def get_payment_of_user(
+    uow: IUnitOfWork = Depends(get_uow),
+    current_user: User = Depends(get_current_user),
+):
+    async with uow:
+        try:
+            res = await payment_service.get_payment_of_user(current_user.id, uow)
+            return AppBaseResponse(data=res)
+        except ValueError as ex:
+            return Error400(str(ex))
