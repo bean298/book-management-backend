@@ -9,7 +9,13 @@ from app.enum.common import OrderStatus, PaymentMethod, PaymentStatus
 from app.exceptions.resource_exception import NotFoundError
 from app.logging.logger import logger
 from app.models.payment_model import Payment
-from app.schemas.payment_schema import CreatePaymentReq, PaymentUrlRes, payment_to_res
+from app.schemas.base_schema import AppBasePagingRes
+from app.schemas.payment_schema import (
+    CreatePaymentReq,
+    PaymentRes,
+    PaymentUrlRes,
+    payment_to_res,
+)
 from app.services.cart_service import restore_order_items_to_cart
 from app.utils.vnpay import build_payment_url, parse_vnpay_date, verify_payment
 
@@ -154,6 +160,45 @@ async def process_return(params: dict, uow: IUnitOfWork) -> str:
         )
 
     return f"/payment-result?{urlencode(payment_result)}"
+
+
+# Get list payments (ADMIN only)
+async def list_payments_admin(
+    uow: IUnitOfWork,
+    page: int = 1,
+    page_size: int = 10,
+    status: PaymentStatus | None = None,
+    method: PaymentMethod | None = None,
+) -> AppBasePagingRes[PaymentRes]:
+    conditions = []
+
+    if status:
+        conditions.append(Payment.status == status)
+    if method:
+        conditions.append(Payment.payment_method == method)
+
+    if conditions:
+        paging = await uow.payment.paginate(
+            *conditions,
+            page=page,
+            page_size=page_size,
+        )
+    else:
+        paging = await uow.payment.paginate(
+            page=page,
+            page_size=page_size,
+        )
+
+    return AppBasePagingRes[PaymentRes](
+        items=[payment_to_res(p) for p in paging.items],
+        total=paging.total,
+        page=paging.page,
+        page_size=paging.page_size,
+        is_full=paging.is_full,
+    )
+
+
+# ----------------- HELPER -----------------
 
 
 # HELPER: Update payment (database), order model after VNPay callback

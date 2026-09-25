@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import RedirectResponse
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_admin
 from app.db.database import IUnitOfWork, get_uow
+from app.enum.common import PaymentMethod, PaymentStatus
 from app.models.user_model import User
-from app.schemas.base_schema import AppBaseResponse
-from app.schemas.payment_schema import CreatePaymentReq, PaymentUrlRes
+from app.schemas.base_schema import AppBasePagingRes, AppBaseResponse
+from app.schemas.payment_schema import CreatePaymentReq, PaymentRes, PaymentUrlRes
 from app.services import payment_service
 from app.utils.common import Error400
 
@@ -55,3 +56,28 @@ async def vnpay_return(
     async with uow:
         redirect_url = await payment_service.process_return(params, uow)
     return RedirectResponse(url=redirect_url)
+
+
+# Get list payments (Admin only)
+@router.get(
+    "",
+    summary="List payment (Admin only)",
+    response_model=AppBaseResponse[AppBasePagingRes[PaymentRes]],
+)
+async def list_payments_admin(
+    status: PaymentStatus | None = None,
+    method: PaymentMethod | None = None,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1),
+    uow: IUnitOfWork = Depends(get_uow),
+    admin=Depends(require_admin),
+):
+    async with uow:
+        payments = await payment_service.list_payments_admin(
+            uow,
+            status=status,
+            method=method,
+            page=page,
+            page_size=page_size,
+        )
+        return AppBaseResponse[AppBasePagingRes[PaymentRes]](data=payments)
