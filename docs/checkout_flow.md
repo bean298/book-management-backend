@@ -244,3 +244,137 @@ async def get_by_id_for_update(self, book_id: str) -> Book | None:
 > `sorted(cart_items, key=lambda i: str(i.book_id))` + `with_for_update()` ensure a **consistent lock order**, avoiding deadlocks when two users check out overlapping books concurrently.
 
 **Result:** an `Order` in `PENDING` status with `expires_at` set; stock is reduced and the cart is emptied. The response returns the created `OrderRes`.
+
+---
+
+## 5. Case 2 — Rollback when order expired
+
+### Trigger
+
+Not an HTTP endpoint — a **background job** registered at startup (`start_all_jobs()` in `main.py` lifespan). It runs every **30 seconds** via APScheduler.
+
+### Flow
+
+```mermaid
+sequenceDiagram
+    participant JOB as Scheduler (every 30s)
+    participant SV as order_service
+    participant RP as Repositories
+
+    JOB->>SV: run_cancel_expired_orders_job()
+    SV->>SV: cancel_expired_orders(uow)
+    SV->>RP: order.get_expired_pending_orders(now)
+    loop each expired PENDING order
+        SV->>RP: payment.get_list_by_order_id(order_id)
+        alt has SUCCESS payment
+            SV-->>SV: skip order
+        else no success
+            SV->>RP: payment PENDING -> EXPIRED
+            SV->>RP: order -> CANCELLED
+            loop each order_item
+                SV->>RP: books.get_by_id_for_update -> quantity += (restock)
+            end
+            SV->>RP: restore_order_items_to_cart (restore cart)
+        end
+    end
+    SV->>RP: uow.commit()
+```
+
+### Trace — file by file
+
+#### 5.1 `app/jobs/order_jobs.py` — schedule the job
+
+```python
+async def run_cancel_expired_orders_job() -> None:
+    async with get_uow() as uow:
+        cancelled = await cancel_expired_orders(uow)
+    logger.info("Expired order job done | cancelled=%s", cancelled)
+
+def register_order_jobs(scheduler: AsyncIOScheduler) -> None:
+    scheduler.add_job(
+        run_cancel_expired_orders_job,
+        trigger=IntervalTrigger(seconds=30),   # run every 30s
+        id="cancel_expired_orders",
+        replace_existing=True,
+        max_instances=1,                       # no overlapping runs
+    )
+```
+
+#### 5.2 `app/services/order_service.py` — `cancel_expired_orders`
+
+```python
+async def cancel_expired_orders(uow: IUnitOfWork) -> int:
+    now = datetime.now(UTC)
+
+    orders = await uow.order.get_expired_pending_orders(now)
+
+    cancelled_count = 0
+    for order in orders:
+        # Skip orders already paid successfully
+        payments = await uow.payment.get_list_by_order_id(str(order.id))
+        if any(p.status == PaymentStatus.SUCCESS for p in payments):
+            continue
+
+        # Mark pending payments as EXPIRED
+        for payment in payments:
+            if payment.status == PaymentStatus.PENDING:
+                payment.status = PaymentStatus.EXPIRED
+                payment.error_message = "Order expired before payment"
+
+        order.status = OrderStatus.CANCELLED
+
+        # Restock
+        for item in order.order_items:
+            book = await uow.books.get_by_id_for_update(str(item.book_id))
+            if not book:
+                raise NotFoundError("Book", str(item.book_id))
+            book.quantity += item.quantity
+
+        # Restore cart
+        await restore_order_items_to_cart(str(order.user_id), order.order_items, uow)
+
+        cancelled_count += 1
+
+    await uow.commit()
+    return cancelled_count
+```
+
+#### 5.3 `app/repositories/order_repository.py` — `get_expired_pending_orders`
+
+```python
+async def get_expired_pending_orders(self, now: datetime) -> list[Order]:
+    stmt = (
+        select(Order)
+        .options(selectinload(Order.order_items).selectinload(OrderItem.book))
+        .where(
+            Order.status == OrderStatus.PENDING,
+            Order.expires_at.is_not(None),
+            Order.expires_at < now,           # deadline passed
+        )
+        .order_by(Order.created_at.asc())
+    )
+    result = await self.session.execute(stmt)
+    return result.scalars().unique().all()
+```
+
+#### 5.4 `app/services/cart_service.py` — `restore_order_items_to_cart`
+
+```python
+async def restore_order_items_to_cart(user_id, order_items, uow) -> None:
+    cart = await uow.cart.get_cart_by_user_id(str(user_id))
+
+    for item in order_items:
+        await uow.cart_items.add(
+            CartItem(
+                cart_id=cart.id,
+                book_id=item.book_id,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+            )
+        )
+
+    cart_items = await uow.cart_items.get_list_by_cart_id(str(cart.id))
+    await _recalculate_cart_totals(cart, cart_items)   # re-sum totals
+```
+
+**Result:** expired PENDING orders are CANCELLED, stock is returned, the cart is restored, and pending payments are marked `EXPIRED`. All changes commit in one transaction per job run.
