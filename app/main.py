@@ -16,6 +16,7 @@ from app.routers.author_router import router as author_router
 from app.routers.book_router import router as book_router
 from app.routers.cart_router import router as cart_router
 from app.routers.category_router import router as category_router
+from app.routers.dashboard_router import router as dashboard_router
 from app.routers.order_router import router as order_router
 from app.routers.payment_router import router as payment_router
 from app.routers.user_router import router as user_router
@@ -137,6 +138,7 @@ async def payment_result(
 API_PREFIX = "/api/v1"
 
 # Include Routers
+app.include_router(dashboard_router, prefix=API_PREFIX)
 app.include_router(auth_router, prefix=API_PREFIX)
 app.include_router(user_router, prefix=API_PREFIX)
 app.include_router(author_router, prefix=API_PREFIX)

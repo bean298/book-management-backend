@@ -45,3 +45,10 @@ class PaymentStatus(StrEnum):
     PENDING = "pending"
     EXPIRED = "expired"
     REFUNDED = "refunded"
+
+
+class PeriodStatus(StrEnum):
+    DAY = "day"
+    WEEK = "week"
+    MONTH = "month"
+    YEAR = "year"

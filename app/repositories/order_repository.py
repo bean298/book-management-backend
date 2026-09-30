@@ -135,3 +135,23 @@ class OrderRepository(Repository[Order]):
         )
         result = await self.session.execute(stmt)
         return result.scalars().unique().all()
+
+    # Def to get revenue by period
+    async def revenue_by_period(self, period: str = "day") -> list[dict]:
+
+        # DATE_TRUNC('day', created_at) AS period
+        col = func.date_trunc(period, Order.created_at).label("period")
+
+        # SELECT
+        # DATE_TRUNC("day", created_at) as period
+        # SUM(total_price) as revenue
+        # FROM Order GROUP BY DATE_TRUNC('day', created_at) ORDER BY period;
+        stmt = (
+            select(col, func.sum(Order.total_price).label("revenue"))
+            .where(Order.status == OrderStatus.CONFIRMED)
+            .group_by(col)
+            .order_by(col)
+        )
+        rows = (await self.session.execute(stmt)).all()
+
+        return [{"period": r.period, "revenue": float(r.revenue)} for r in rows]
