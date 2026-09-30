@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import get_current_user, require_admin
 from app.db.database import IUnitOfWork, get_uow
+from app.enum.common import UserRole
+from app.exceptions.resource_exception import NotFoundError
+from app.models.user_model import User
 from app.schemas.base_schema import AppBasePagingRes, AppBaseResponse
 from app.schemas.user_schema import UpdateUserReq, UserCreateReq, UserRes
 from app.services import user_service
@@ -52,12 +55,16 @@ async def get_users(
 @router.get(
     "/{user_id}",
     summary="Get user",
-    dependencies=[Depends(get_current_user)],
 )
 async def get_user_detail(
     user_id: str,
     uow: IUnitOfWork = Depends(get_uow),
+    current_user: User = Depends(get_current_user),
 ):
+    # Avoid user to view another user's information
+    if str(current_user.id) != user_id and current_user.role != UserRole.ADMIN:
+        raise NotFoundError("User", user_id)
+
     async with uow:
         try:
             res = await user_service.get_user(user_id, uow)
