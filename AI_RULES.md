@@ -8,4 +8,4 @@
 - Answer in the user's language.
 - Keep answers short; explain concepts with simple examples.
 - Don't repeat information already given.
-- Always show the result/plan; only edit files directly when explicitly asked.
+- Show the proposed code changes in chat; only edit files directly when explicitly asked.
