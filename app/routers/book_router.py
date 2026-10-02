@@ -13,7 +13,11 @@ router = APIRouter(prefix="/book", tags=["Book"])
 
 
 # Create new book (multipart/form-data: form fields + optional image file)
-@router.post("", summary="Create a new book", response_model=BookRes)
+@router.post(
+    "",
+    summary="Create a new book",
+    response_model=AppBaseResponse[BookRes],
+)
 async def create_book(
     title: str = Form(..., description="Book title"),
     author_id: UUID = Form(..., description="Author ID"),
@@ -38,7 +42,7 @@ async def create_book(
                 description=description,
             )
             res = await book_service.create_book(book_data, uow, cover_image)
-            return res
+            return AppBaseResponse[BookRes](data=res, message="Book created successfully")
         except ValueError as ex:
             return Error400(str(ex))
 
