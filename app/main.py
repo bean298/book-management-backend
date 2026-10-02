@@ -52,6 +52,41 @@ app = FastAPI(
     redirect_slashes=False,
 )
 
+
+# Patch OpenAPI: FastAPI generates OAS 3.1 where a file upload field is
+# `type: string, contentMediaType: application/octet-stream`. Swagger UI 5.x
+# only renders a file picker for `type: string, format: binary` (OAS 3.0 style),
+# so we convert those fields here.
+_original_openapi = app.openapi
+
+
+def patched_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    schema = _original_openapi()
+
+    def fix(obj):
+        if isinstance(obj, dict):
+            if obj.get("contentMediaType") == "application/octet-stream":
+                obj.pop("contentMediaType", None)
+                obj["format"] = "binary"
+
+            for value in obj.values():
+                fix(value)
+
+        elif isinstance(obj, list):
+            for item in obj:
+                fix(item)
+
+    fix(schema)
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = patched_openapi
+
+
 # Jinja2 templates for serving web pages
 templates = Jinja2Templates(directory="app/templates")
 
