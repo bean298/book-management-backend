@@ -9,8 +9,11 @@ from app.services.auth_service import delete_expired_token
 # Def to call delete_expired_token()
 async def run_delete_expired_token_job() -> None:
     async with get_uow() as uow:
-        deleted = await delete_expired_token(uow)
-    logger.info("Refresh token cleanup done | deleted=%s", deleted)
+        await delete_expired_token(uow)
+    # Uncomment the following line if you want to log the number of deleted tokens
+    # and comment "await delete_expired_token(uow)"
+    #     deleted = await delete_expired_token(uow)
+    # logger.info("Refresh token cleanup done | deleted=%s", deleted)
 
 
 # Def to run the token scheduler once in every 30s

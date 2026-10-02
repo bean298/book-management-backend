@@ -9,8 +9,11 @@ from app.services.order_service import cancel_expired_orders
 # Def to call cancel_expired_orders()
 async def run_cancel_expired_orders_job() -> None:
     async with get_uow() as uow:
-        cancelled = await cancel_expired_orders(uow)
-    logger.info("Expired order job done | cancelled=%s", cancelled)
+        await cancel_expired_orders(uow)
+    # Uncomment the following line if you want to log the number of cancelled orders
+    # and comment "await cancel_expired_orders(uow)"
+    #     cancelled = await cancel_expired_orders(uow)
+    # logger.info("Expired order job done | cancelled=%s", cancelled)
 
 
 # Def to run the order scheduler once in every 30s
