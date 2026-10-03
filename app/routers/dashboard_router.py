@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import require_admin
@@ -11,7 +13,12 @@ from app.utils.common import Error400
 router = APIRouter(prefix="/statistics", tags=["Statistics"])
 
 
-@router.get("/revenue", summary="Get revenue", response_model=AppBaseResponse[RevenueRes])
+@router.get(
+    "/revenue",
+    summary="Get revenue",
+    status_code=HTTPStatus.OK,
+    response_model=AppBaseResponse[RevenueRes],
+)
 async def get_revenue(
     period: PeriodStatus = Query(default=PeriodStatus.DAY),
     uow: IUnitOfWork = Depends(get_uow),

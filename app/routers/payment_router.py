@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import RedirectResponse
 
@@ -18,6 +20,7 @@ router = APIRouter(prefix="/payment", tags=["Payment"])
     "/",
     response_model=AppBaseResponse[PaymentUrlRes],
     summary="Create a payment for an order",
+    status_code=HTTPStatus.CREATED,
 )
 async def create_payment(
     data: CreatePaymentReq,
@@ -62,6 +65,7 @@ async def vnpay_return(
 @router.get(
     "",
     summary="List payment (Admin only)",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse[AppBasePagingRes[PaymentRes]],
 )
 async def list_payments_admin(
@@ -87,6 +91,7 @@ async def list_payments_admin(
 @router.get(
     "/get-payment-of-user",
     summary="Get payment of user (Current user)",
+    status_code=HTTPStatus.OK,
 )
 async def get_payment_of_user(
     uow: IUnitOfWork = Depends(get_uow),

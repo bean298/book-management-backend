@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
@@ -16,6 +17,8 @@ router = APIRouter(prefix="/book", tags=["Book"])
 @router.post(
     "",
     summary="Create a new book",
+    description="Create a new book with optional cover image (multipart/form-data).",
+    status_code=HTTPStatus.CREATED,
     response_model=AppBaseResponse[BookRes],
 )
 async def create_book(
@@ -51,6 +54,8 @@ async def create_book(
 @router.get(
     "",
     summary="List books",
+    description="List books with optional keyword search and pagination.",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse[AppBasePagingRes[BookRes]],
 )
 async def get_books(
@@ -73,6 +78,8 @@ async def get_books(
 @router.get(
     "/{book_id}",
     summary="Get book",
+    description="Get a book by its ID.",
+    status_code=HTTPStatus.OK,
 )
 async def get_book(
     book_id: str,
@@ -90,6 +97,8 @@ async def get_book(
 @router.put(
     "/{book_id}",
     summary="Update a book (multipart/form-data)",
+    description="Update a book by its ID (multipart/form-data).",
+    status_code=HTTPStatus.OK,
 )
 async def update_book(
     book_id: str,
@@ -121,6 +130,8 @@ async def update_book(
 @router.delete(
     "/{book_id}",
     summary="Delete a book",
+    description="Delete a book by its ID.",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse,
 )
 async def delete_book(

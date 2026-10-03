@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import get_current_user, require_admin
@@ -14,7 +16,12 @@ router = APIRouter(prefix="/user", tags=["User"])
 
 
 # Create new user
-@router.post("", summary="Create a new user", response_model=UserRes)
+@router.post(
+    "",
+    summary="Create a new user",
+    status_code=HTTPStatus.CREATED,
+    response_model=UserRes,
+)
 async def create_user(
     data: UserCreateReq,
     uow: IUnitOfWork = Depends(get_uow),
@@ -32,6 +39,7 @@ async def create_user(
 @router.get(
     "",
     summary="List users",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse[AppBasePagingRes[UserRes]],
 )
 async def get_users(
@@ -55,6 +63,7 @@ async def get_users(
 @router.get(
     "/{user_id}",
     summary="Get user",
+    status_code=HTTPStatus.OK,
 )
 async def get_user_detail(
     user_id: str,
@@ -77,6 +86,7 @@ async def get_user_detail(
 @router.put(
     "/{user_id}",
     summary="Update a user",
+    status_code=HTTPStatus.OK,
     response_model=UserRes,
 )
 async def update_user(
@@ -97,6 +107,7 @@ async def update_user(
 @router.delete(
     "/{user_id}",
     summary="Delete a user",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse,
 )
 async def delete_user(

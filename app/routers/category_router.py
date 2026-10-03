@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import get_current_user, require_admin
@@ -15,7 +17,12 @@ router = APIRouter(prefix="/category", tags=["Category"])
 
 
 # Create new category
-@router.post("", summary="Create a new category", response_model=CategoryRes)
+@router.post(
+    "",
+    summary="Create a new category",
+    status_code=HTTPStatus.CREATED,
+    response_model=CategoryRes,
+)
 async def create_category(
     data: CategoryCreateReq,
     uow: IUnitOfWork = Depends(get_uow),
@@ -33,6 +40,7 @@ async def create_category(
 @router.get(
     "",
     summary="List categories",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse[AppBasePagingRes[CategoryRes]],
 )
 async def get_categories(
@@ -55,6 +63,7 @@ async def get_categories(
 @router.get(
     "/{category_id}",
     summary="Get category",
+    status_code=HTTPStatus.OK,
 )
 async def get_category_detail(
     category_id: str,
@@ -72,6 +81,7 @@ async def get_category_detail(
 @router.put(
     "/{category_id}",
     summary="Update a category",
+    status_code=HTTPStatus.OK,
     response_model=CategoryRes,
     dependencies=[Depends(get_current_user)],
 )
@@ -92,6 +102,7 @@ async def update_category(
 @router.delete(
     "/{category_id}",
     summary="Delete a category",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse,
 )
 async def delete_category(

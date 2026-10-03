@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import require_admin
@@ -15,7 +17,12 @@ router = APIRouter(prefix="/author", tags=["Author"])
 
 
 # Create new author
-@router.post("", summary="Create a new author", response_model=AuthorRes)
+@router.post(
+    "",
+    summary="Create a new author",
+    status_code=HTTPStatus.CREATED,
+    response_model=AuthorRes,
+)
 async def create_author(
     data: AuthorCreateReq,
     uow: IUnitOfWork = Depends(get_uow),
@@ -33,6 +40,7 @@ async def create_author(
 @router.get(
     "",
     summary="List authors",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse[AppBasePagingRes[AuthorRes]],
 )
 async def get_authors(
@@ -55,6 +63,7 @@ async def get_authors(
 @router.get(
     "/{author_id}",
     summary="Get author",
+    status_code=HTTPStatus.OK,
 )
 async def get_author_detail(
     author_id: str,
@@ -72,6 +81,7 @@ async def get_author_detail(
 @router.put(
     "/{author_id}",
     summary="Update a author",
+    status_code=HTTPStatus.OK,
     response_model=AuthorRes,
 )
 async def update_author(
@@ -92,6 +102,7 @@ async def update_author(
 @router.delete(
     "/{author_id}",
     summary="Delete a author",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse,
 )
 async def delete_author(

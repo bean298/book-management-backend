@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from fastapi import APIRouter, BackgroundTasks, Depends
 
 from app.db.database import IUnitOfWork, get_uow
@@ -17,7 +19,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 # Register
-@router.post("/register", response_model=UserRes)
+@router.post("/register", status_code=HTTPStatus.CREATED, response_model=UserRes)
 async def register(
     data: UserCreateReq,
     uow: IUnitOfWork = Depends(get_uow),
@@ -32,7 +34,7 @@ async def register(
 
 
 # Login
-@router.post("/login", response_model=TokenRes)
+@router.post("/login", status_code=HTTPStatus.OK, response_model=TokenRes)
 async def login(
     data: LoginReq,
     uow: IUnitOfWork = Depends(get_uow),
@@ -43,7 +45,9 @@ async def login(
 
 
 # Request reset password
-@router.post("/request-password-reset", response_model=MessageResponse)
+@router.post(
+    "/request-password-reset", status_code=HTTPStatus.OK, response_model=MessageResponse
+)
 async def request_password_reset(
     data: ForgetPasswordReq, uow: IUnitOfWork = Depends(get_uow)
 ):
@@ -55,7 +59,7 @@ async def request_password_reset(
 
 
 # Verify OTP (Mobile only)
-@router.post("/verify-otp", response_model=VerifyOTPRes)
+@router.post("/verify-otp", status_code=HTTPStatus.OK, response_model=VerifyOTPRes)
 async def verify_otp(
     data: VerifyOTPReq,
     uow: IUnitOfWork = Depends(get_uow),
@@ -69,7 +73,7 @@ async def verify_otp(
 
 
 # Verify Reset Token and change password
-@router.post("/reset-password", response_model=MessageResponse)
+@router.post("/reset-password", status_code=HTTPStatus.OK, response_model=MessageResponse)
 async def reset_password(
     data: ResetPasswordReq,
     uow: IUnitOfWork = Depends(get_uow),
@@ -88,14 +92,14 @@ async def reset_password(
 
 
 # Refresh token
-@router.post("/refresh-token", response_model=TokenRes)
+@router.post("/refresh-token", status_code=HTTPStatus.OK, response_model=TokenRes)
 async def refresh(data: RefreshTokenReq, uow: IUnitOfWork = Depends(get_uow)):
     async with uow:
         return await auth_service.refresh_token(uow, data.refresh_token)
 
 
 # Logout
-@router.post("/logout", response_model=MessageResponse)
+@router.post("/logout", status_code=HTTPStatus.OK, response_model=MessageResponse)
 async def logout(data: RefreshTokenReq, uow: IUnitOfWork = Depends(get_uow)):
     async with uow:
         await auth_service.logout(uow, data.refresh_token)

@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from fastapi import APIRouter, Depends
 
 from app.api.deps import get_current_user, require_admin
@@ -17,6 +19,7 @@ router = APIRouter(prefix="/cart", tags=["Cart"])
     "/add-to-cart",
     response_model=AppBaseResponse[CartRes],
     summary="Add a book to cart",
+    status_code=HTTPStatus.CREATED,
 )
 async def add_to_cart(
     data: AddToCartReq,
@@ -43,6 +46,7 @@ async def add_to_cart(
 @router.get(
     "/get-cart-of-user",
     summary="Get cart of user (Current user)",
+    status_code=HTTPStatus.OK,
 )
 async def get_cart_of_user(
     uow: IUnitOfWork = Depends(get_uow),
@@ -60,6 +64,7 @@ async def get_cart_of_user(
 @router.get(
     "/{cart_id}",
     summary="Get cart of user (Admin Only)",
+    status_code=HTTPStatus.OK,
 )
 async def get_cart_of_user_for_admin(
     cart_id: str,
@@ -78,6 +83,7 @@ async def get_cart_of_user_for_admin(
     "/items/{cart_item_id}",
     response_model=AppBaseResponse[CartRes],
     summary="Update quantity of a cart item",
+    status_code=HTTPStatus.OK,
 )
 async def update_cart_item(
     cart_item_id: str,
@@ -102,6 +108,7 @@ async def update_cart_item(
 @router.delete(
     "/{cart_item_id}",
     summary="Delete a cart item",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse,
 )
 async def delete_cart_item(

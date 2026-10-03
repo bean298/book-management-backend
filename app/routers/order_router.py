@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import get_current_user, require_admin
@@ -17,6 +19,7 @@ router = APIRouter(prefix="/order", tags=["Order"])
     "/checkout",
     response_model=AppBaseResponse[OrderRes],
     summary="Create order",
+    status_code=HTTPStatus.CREATED,
 )
 async def checkout(
     cart_id: str,
@@ -38,6 +41,7 @@ async def checkout(
 @router.put(
     "/{order_id}",
     summary="Update order status",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse[OrderRes],
 )
 async def update_order(
@@ -62,6 +66,7 @@ async def update_order(
 @router.get(
     "/my-orders",
     summary="Get my orders (paging)",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse[AppBasePagingRes[OrderRes]],
 )
 async def get_my_orders(
@@ -89,6 +94,7 @@ async def get_my_orders(
 @router.get(
     "/all-orders",
     summary="Get all orders (admin, paging)",
+    status_code=HTTPStatus.OK,
     response_model=AppBaseResponse[AppBasePagingRes[OrderRes]],
 )
 async def get_all_orders(
@@ -113,6 +119,7 @@ async def get_all_orders(
 @router.get(
     "/{order_id}",
     summary="Get order",
+    status_code=HTTPStatus.OK,
 )
 async def get_order(
     order_id: str,
