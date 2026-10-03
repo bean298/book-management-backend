@@ -52,11 +52,21 @@ app = FastAPI(
     redirect_slashes=False,
 )
 
+"""
+Patch OpenAPI file upload schema so Swagger UI displays a file picker.
+FastAPI generates OpenAPI 3.1 schemas for file uploads using:
+    "type": "string",
+    "contentMediaType": "application/octet-stream"
 
-# Patch OpenAPI: FastAPI generates OAS 3.1 where a file upload field is
-# `type: string, contentMediaType: application/octet-stream`. Swagger UI 5.x
-# only renders a file picker for `type: string, format: binary` (OAS 3.0 style),
-# so we convert those fields here.
+Swagger UI expects the OAS 3.0-style representation:
+    "type": "string",
+    "format": "binary"
+
+Therefore, this patch converts:
+    {"type": "string", "contentMediaType": "application/octet-stream"}
+    into:
+    {"type": "string", "format": "binary"}
+"""
 _original_openapi = app.openapi
 
 
