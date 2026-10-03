@@ -77,6 +77,9 @@ def patched_openapi():
     schema = _original_openapi()
 
     def fix(obj):
+        """
+        Recursively traverse the OpenAPI schema and fix file upload schemas
+        """
         if isinstance(obj, dict):
             if obj.get("contentMediaType") == "application/octet-stream":
                 obj.pop("contentMediaType", None)
