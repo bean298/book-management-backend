@@ -5,7 +5,7 @@ Central index of the step-by-step flow & logic documentation for each feature in
 | Flow | File | Status |
 |---|---|---|
 | 💳 Payment (VNPay) | [payment_flow.md](./payment_flow.md) | ✅ Available |
-| 🛒 Checkout | `checkout_flow.md` | 🚧 Planned |
+| 🛒 Checkout | `checkout_flow.md` | (./checkout_flow.md) | ✅ Available |
 | 🔑 Password reset | `reset_pass_flow.md` | 🚧 Planned |
 | ⏰ Jobs / Scheduler | `job_flow.md` | 🚧 Planned |
 
