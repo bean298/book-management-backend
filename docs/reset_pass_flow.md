@@ -316,3 +316,280 @@ async def reset_password_page(request: Request, token: str = ""):
 ```
 
 **Result:** no DB record is written for the link flow — the reset JWT lives only in the email. The user opens `{SERVER_URL}/reset-password?token=<jwt>`, gets the `reset_password.html` form, and submits the new password to `POST /auth/reset-password` (Case 4).
+
+---
+
+## 6. Case 3 — Verify OTP (mobile)
+
+### Payload
+
+```http
+POST /auth/verify-otp HTTP/1.1
+Content-Type: application/json
+
+{"email": "user@example.com", "otp_code": "123456"}
+```
+
+### Flow
+
+```mermaid
+sequenceDiagram
+    participant FE as Mobile
+    participant RT as auth_router
+    participant SV as password_reset_service
+    participant RP as Repositories
+    participant SEC as security
+
+    FE->>RT: POST /auth/verify-otp {email, otp_code}
+    RT->>SV: verify_otp(uow, email, otp_code)
+    SV->>RP: users.get_user_by_email(email)
+    alt email not found
+        SV-->>RT: return generic message (anti-enumeration)
+    else found
+        SV->>RP: password_reset_token.find_valid_otp(user.id, otp_code)
+        alt OTP invalid / expired / already used
+            SV-->>RT: raise InvalidOTPError (400)
+        else valid
+            SV->>SV: otp_record.used = True
+            SV->>RP: uow.commit()
+            SV->>SEC: reset_token = create_reset_token(user.id)
+            SV-->>RT: VerifyOTPRes{reset_token, message}
+        end
+    end
+    RT-->>FE: 200 {reset_token, message}
+```
+
+### Validation chain
+
+| # | Check | Fail → | Why? |
+|---|---|---|---|
+| 1 | Email exists | still returns the generic message (200) | Anti-enumeration |
+| 2 | OTP exists, not used, not expired, matches `otp_code` | `InvalidOTPError` → 400 | OTP is one-time and time-limited (5 min) |
+| 3 | Mark `used = True` + commit | — | Prevent OTP reuse |
+
+### Trace — file by file
+
+#### 6.1 `app/routers/auth_router.py` — `verify_otp`
+
+```python
+@router.post("/verify-otp", status_code=HTTPStatus.OK, response_model=VerifyOTPRes)
+async def verify_otp(
+    data: VerifyOTPReq,
+    uow: IUnitOfWork = Depends(get_uow),
+):
+    """
+    Mobile: Verify OTP if true -> Create new reset_token.
+    """
+    async with uow:
+        res = await password_reset_service.verify_otp(uow, data.email, data.otp_code)
+    return res
+```
+
+#### 6.2 `app/services/password_reset_service.py` — `verify_otp`
+
+```python
+async def verify_otp(uow: IUnitOfWork, email: str, otp_code: str) -> VerifyOTPRes:
+    # Check user
+    user = await uow.users.get_user_by_email(email)
+    if not user:
+        logger.warning("Password reset requested for non-existent email: %s", email)
+        return "If this email is registered, an OTP has been sent"
+
+    # Verify OTP
+    otp_record = await uow.password_reset_token.find_valid_otp(user.id, otp_code)
+    if not otp_record:
+        logger.warning("Verify OTP failed: invalid or expired OTP | email=%s", email)
+        raise InvalidOTPError()
+
+    otp_record.used = True
+    await uow.commit()
+    logger.info("OTP verified | user_id=%s", user.id)
+
+    reset_token = create_reset_token(str(user.id))
+
+    return VerifyOTPRes(
+        reset_token=reset_token,
+        message="OTP verified. Please enter your new password.",
+    )
+```
+
+#### 6.3 `app/repositories/password_reset_repository.py` — `find_valid_otp`
+
+```python
+async def find_valid_otp(self, user_id: str, otp_code: str) -> PasswordResetToken:
+    stmt = select(PasswordResetToken).where(
+        PasswordResetToken.user_id == user_id,
+        PasswordResetToken.used == False,  # noqa: E712
+        PasswordResetToken.expires_at > datetime.now(UTC),
+        PasswordResetToken.otp_code == otp_code,
+    )
+    result = await self.session.execute(stmt)
+    return result.scalars().first()
+```
+
+#### 6.4 `app/exceptions/token_exception.py` — `InvalidOTPError`
+
+```python
+class InvalidOTPError(BaseAppException):
+    def __init__(self, detail: str = "Invalid or incorrect OTP"):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=detail,
+            error_code="INVALID_OTP",
+        )
+```
+
+**Result:** the OTP row is marked `used = True` and committed; the service returns a fresh reset JWT via `create_reset_token` (see 5.2). The client then calls `POST /auth/reset-password` (Case 4) with that token.
+
+---
+
+## 7. Case 4 — Reset password (web + mobile)
+
+### Payload
+
+```http
+POST /auth/reset-password HTTP/1.1
+Content-Type: application/json
+
+{"reset_token": "<jwt>", "new_password": "newpass123"}
+```
+
+### Flow
+
+```mermaid
+sequenceDiagram
+    participant FE as Client (web/mobile)
+    participant RT as auth_router
+    participant SV as password_reset_service
+    participant RP as Repositories
+    participant SEC as security
+
+    FE->>RT: POST /auth/reset-password {reset_token, new_password}
+    RT->>SV: reset_password(uow, reset_token, new_password)
+    SV->>SEC: user_id = verify_reset_token(reset_token)
+    alt token invalid / expired / wrong type
+        SEC-->>SV: raise InvalidTokenError / ExpiredTokenError (401)
+    else valid
+        SV->>RP: users.get_by_id(user_id)
+        alt user not found
+            SV-->>RT: raise NotFoundError (404)
+        else found
+            SV->>SEC: hashed = hash_password(new_password)
+            SV->>SV: user.hashed_password = hashed
+            SV->>RP: uow.commit()
+            SV-->>RT: "Password has been reset successfully..."
+        end
+    end
+    RT-->>FE: MessageResponse{message}
+```
+
+### Validation chain
+
+| # | Check | Fail → | Why? |
+|---|---|---|---|
+| 1 | `reset_token` valid (signature, `type="reset"`, not expired) | `InvalidTokenError` / `ExpiredTokenError` → 401 | Reject forged or expired tokens |
+| 2 | User exists for `user_id` in the token | `NotFoundError` → 404 | The token must reference a real user |
+| 3 | `new_password` length ≥ 6 | Pydantic `422` | Password policy (`min_length=6`) |
+
+### Trace — file by file
+
+#### 7.1 `app/routers/auth_router.py` — `reset_password`
+
+```python
+@router.post("/reset-password", status_code=HTTPStatus.OK, response_model=MessageResponse)
+async def reset_password(
+    data: ResetPasswordReq,
+    uow: IUnitOfWork = Depends(get_uow),
+):
+    """
+    Reset new password by reset_token
+    - Mobile: token from verify-otp
+    - Web: token from link email
+    """
+
+    async with uow:
+        message = await password_reset_service.reset_password(
+            uow, data.reset_token, data.new_password
+        )
+    return MessageResponse(message=message)
+```
+
+#### 7.2 `app/services/password_reset_service.py` — `reset_password`
+
+```python
+async def reset_password(uow: IUnitOfWork, reset_token: str, new_password: str) -> str:
+    user_id = verify_reset_token(reset_token)
+
+    user = await uow.users.get_by_id(user_id)
+    if not user:
+        logger.warning("Reset password failed: user not found | user_id=%s", user_id)
+        raise NotFoundError()
+
+    user.hashed_password = hash_password(new_password)
+    await uow.commit()
+
+    logger.info("Password reset successful for user_id=%s", user_id)
+    return "Password has been reset successfully. You can now login."
+```
+
+#### 7.3 `app/utils/security.py` — `verify_reset_token`
+
+```python
+def verify_reset_token(reset_token: str) -> str:
+    try:
+        payload = jwt.decode(
+            reset_token, config.JWT_SECRET_KEY, algorithms=[config.JWT_ALGORITHM]
+        )
+        if payload.get("type") != "reset":
+            raise InvalidTokenError()
+
+        return payload["id"]
+    except ExpiredSignatureError as error:
+        raise ExpiredTokenError(
+            "Reset token has expired. Please request a new one."
+        ) from error
+    except JWTError as error:
+        raise InvalidTokenError() from error
+```
+
+#### 7.4 `app/utils/security.py` — `hash_password`
+
+```python
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password[:72])
+```
+
+#### 7.5 `app/exceptions/token_exception.py` — token errors
+
+```python
+class InvalidTokenError(BaseAppException):
+    def __init__(self, detail: str = "Invalid or expired token"):
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=detail,
+            error_code="INVALID_TOKEN",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+class ExpiredTokenError(InvalidTokenError):
+    def __init__(self, detail: str = "Token has expired"):
+        super().__init__(detail=detail)
+        self.error_code = "EXPIRED_TOKEN"
+```
+
+#### 7.6 `app/exceptions/resource_exception.py` — `NotFoundError`
+
+```python
+class NotFoundError(BaseAppException):
+    def __init__(self, resource: str = "Resource", resource_id: str = None):
+        detail = f"{resource} not found"
+        if resource_id:
+            detail = f"{resource} with id '{resource_id}' not found"
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=detail,
+            error_code=f"{resource.upper()}_NOT_FOUND",
+        )
+```
+
+**Result:** the user's password is replaced with a bcrypt hash and committed. This is the shared final step for **both** flows — mobile (token from `verify-otp`) and web (token from the emailed link).
