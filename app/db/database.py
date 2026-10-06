@@ -53,8 +53,10 @@ class IUnitOfWork(Protocol):
     async def rollback(self) -> None: ...
 
 
-# Factory function
+# Factory function: function to create object
 def get_uow() -> IUnitOfWork:
+
+    # Return a new UnitOfWork
     return cast(
         IUnitOfWork,
         UnitOfWork(
