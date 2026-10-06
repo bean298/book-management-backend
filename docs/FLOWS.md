@@ -5,7 +5,7 @@ Central index of the step-by-step flow & logic documentation for each feature in
 | Flow | File | Status |
 |---|---|---|
 | 🗄️ DB / ORM  | [`db_orm.md`](./db_orm.md) | ✅ Available |
-| 🔄 Unit of work  | `unit_of_work.md` | 🚧 Planned |
+| 🔄 Unit of work  | [`unit_of_work.md`](./unit_of_work.md) | ✅ Available |
 | 💳 Payment (VNPay) | [payment_flow.md](./payment_flow.md) | ✅ Available |
 | 🛒 Checkout | [checkout_flow.md](./checkout_flow.md) | ✅ Available |
 | 🔑 Password reset | [reset_pass_flow.md](./reset_pass_flow.md) | ✅ Available |
