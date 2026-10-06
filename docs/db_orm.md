@@ -227,3 +227,91 @@ In short:
 > `unit_of_work.md` answers **"how multiple SQL queries in one request form one transaction, when to commit or rollback"**.
 
 Suggested reading order: `db_orm.md` first (engine/session/repo) → `unit_of_work.md` after (how a session is opened/closed around a request).
+
+---
+
+## 5. Example — `GET /book/{book_id}` (file-by-file trace)
+
+A concrete walkthrough: one request that fetches a single book. This is the simplest flow — no auth, no business writes, just one SQL query.
+
+### Request
+
+```http
+GET /book/019e4b6e-... HTTP/1.1
+```
+
+### Sequence
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant RT as book_router.get_book
+    participant DI as deps.get_uow
+    participant UOW as UnitOfWork
+    participant PC as PostgresDBContext
+    participant SV as book_service.get_book
+    participant BR as BookRepository
+    participant RP as Repository.get_by_id
+
+    C->>RT: GET /book/{book_id}
+    RT->>DI: Depends(get_uow)
+    DI-->>RT: UnitOfWork(db=database, repositories={...})
+    RT->>UOW: async with uow → __aenter__()
+    UOW->>PC: database.session()
+    PC-->>UOW: new AsyncSession
+    RT->>SV: get_book(book_id, uow)
+    SV->>UOW: uow.books → __getattr__("books")
+    UOW-->>SV: BookRepository(session) (cached)
+    SV->>BR: get_by_id(book_id)
+    BR->>RP: inherited from Repository
+    RP->>PC: session.execute(select(Book) ...)
+    PC-->>RP: Book | None
+    RP-->>SV: Book
+    SV-->>RT: BookRes
+    RT->>UOW: __aexit__() → commit() + close()
+    RT-->>C: 200 AppBaseResponse
+```
+
+### File-by-file trace
+
+1. **`app/routers/book_router.py`** — `get_book`
+   - Declares `uow: IUnitOfWork = Depends(get_uow)` and enters `async with uow:`.
+
+2. **`app/db/database.py`** — `get_uow()`
+   - FastAPI calls the dependency → returns a brand-new `UnitOfWork(db=database, repositories={...})`.
+   - `database` is the **single shared** `PostgresDBContext` (created once at import).
+
+3. **`app/orm/unit_of_work.py`** — `UnitOfWork.__aenter__`
+   - `self.session = await self._db.session()` → opens a new `AsyncSession` for this request.
+
+4. **`app/orm/postgres.py`** — `PostgresDBContext.session()`
+   - `return self._sessionmaker()` → the sessionmaker casts a new `AsyncSession` from the pool.
+
+5. **`app/services/book_service.py`** — `get_book`
+   - Calls `uow.books.get_by_id(book_id)`.
+
+6. **`app/orm/unit_of_work.py`** — `UnitOfWork.__getattr__("books")`
+   - `books` is not a real attribute → looks it up in `_repo_factories`, creates `BookRepository(self.session)`, caches it in `_repos`.
+
+7. **`app/repositories/book_repository.py`** — `BookRepository`
+   - Does **not** define `get_by_id`; the call falls through to the base class.
+
+8. **`app/orm/repository.py`** — `Repository.get_by_id`
+   - Builds `select(Book).where(id == UUID(book_id), object_status == ACTIVE)`.
+   - Runs `await self.session.execute(stmt)` → SQL goes to Postgres via the pooled connection.
+   - Returns `result.scalar_one_or_none()` (a `Book` or `None`).
+
+9. **`app/services/book_service.py`** — back in `get_book`
+   - `None` → raises `NotFoundError`; otherwise converts via `book_to_res(book)` and returns `BookRes`.
+
+10. **`app/routers/book_router.py`** — wraps into `AppBaseResponse` and returns HTTP 200.
+
+11. **`app/orm/unit_of_work.py`** — `UnitOfWork.__aexit__`
+    - No exception → `await self.session.commit()`, then `finally: await self.session.close()`.
+    - A read-only query doesn't change data, but the transaction is still committed and the session closed uniformly.
+
+### Key takeaways
+
+- The router never touches SQL; it call to `book_service`.
+- `book_service` never opens a session; it uses `uow.books` and lets `UnitOfWork` manage the transaction.
+- The only file that talks to Postgres is `orm/postgres.py` (via the session from the pool).
