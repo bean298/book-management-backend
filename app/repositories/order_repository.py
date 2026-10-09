@@ -140,6 +140,7 @@ class OrderRepository(Repository[Order]):
     async def revenue_by_period(self, period: str = "day") -> list[dict]:
 
         # DATE_TRUNC('day', created_at) AS period
+        # DATE_TRUNC: Truncate a timestamp to the beginning of a specified time unit.
         col = func.date_trunc(period, Order.created_at).label("period")
 
         # SELECT
