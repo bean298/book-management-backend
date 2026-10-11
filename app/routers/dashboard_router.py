@@ -17,6 +17,7 @@ router = APIRouter(prefix="/statistics", tags=["Statistics"])
     "/revenue",
     summary="Get revenue",
     status_code=HTTPStatus.OK,
+    desscription="Get revenue by period",
     response_model=AppBaseResponse[RevenueRes],
 )
 async def get_revenue(
