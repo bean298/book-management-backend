@@ -141,6 +141,10 @@ class OrderRepository(Repository[Order]):
 
         # DATE_TRUNC('day', created_at) AS period
         # DATE_TRUNC: Truncate a timestamp to the beginning of a specified time unit.
+        # Example: DATE_TRUNC('day', '2026-10-11 14:30:00') → '2026-10-11 00:00:00'
+        # DATE_TRUNC('week', '2026-10-11 14:30:00')  → '2026-10-05 00:00:00'
+        # DATE_TRUNC('month', '2026-10-11 14:30:00') → '2026-10-01 00:00:00'
+        # DATE_TRUNC('year', '2026-10-11 14:30:00')  → '2026-01-01 00:00:00'
         col = func.date_trunc(period, Order.created_at).label("period")
 
         # SELECT
