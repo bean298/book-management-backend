@@ -15,15 +15,17 @@ from app.schemas.user_schema import (
 # Create new user
 async def create_user(user_data: UserCreateReq, uow: IUnitOfWork) -> UserRes:
     """
+    Create a new user account.
+
     Args:
-        user_data (UserCreateReq): [description]
-        uow (IUnitOfWork): [description]
+        user_data (UserCreateReq): Request data containing the new user's information.
+        uow (IUnitOfWork): uow used to access repositories and manage transactions.
 
     Raises:
-        ValueError: [description]
+        ValueError: If a user with the given email already exists.
 
     Returns:
-        UserRes: [description]
+        UserRes: Response containing the newly created user's information.
     """
 
     # Check existing email
@@ -35,9 +37,7 @@ async def create_user(user_data: UserCreateReq, uow: IUnitOfWork) -> UserRes:
     user = req_to_user(user_data)
     new_user = await uow.users.add(user)
 
-    logger.info(
-        "User registered | id=%s, email=%s", new_user.id, new_user.email
-    )
+    logger.info("User registered | id=%s, email=%s", new_user.id, new_user.email)
     return user_to_res(new_user)
 
 
@@ -46,16 +46,18 @@ async def update_user(
     user_id: str, user_data: UpdateUserReq, uow: IUnitOfWork
 ) -> UserRes:
     """
+    Update an existing user's information.
+
     Args:
-        user_id (str): [description]
-        user_data (UpdateUserReq): [description]
-        uow (IUnitOfWork): [description]
+        user_id (str): ID of the user to update.
+        user_data (UpdateUserReq): Request data containing the fields to update.
+        uow (IUnitOfWork): uow used to access repositories and manage transactions.
 
     Raises:
-        NotFoundError: [description]
+        NotFoundError: If the user with the given ID does not exist.
 
     Returns:
-        UserRes: [description]
+        UserRes: Response containing the updated user's information.
     """
 
     user = await uow.users.get_by_id(user_id)
@@ -77,15 +79,17 @@ async def update_user(
 # Delete user
 async def delete_user(user_id: str, uow: IUnitOfWork) -> UserRes:
     """
+    Delete an existing user account.
+
     Args:
-        user_id (str): [description]
-        uow (IUnitOfWork): [description]
+        user_id (str): ID of the user to delete.
+        uow (IUnitOfWork): uow used to access repositories and manage transactions.
 
     Raises:
-        NotFoundError: [description]
+        NotFoundError: If the user with the given ID does not exist.
 
     Returns:
-        UserRes: [description]
+        UserRes: Response containing the deleted user's information.
     """
 
     user = await uow.users.get_by_id(user_id)
@@ -133,15 +137,17 @@ async def get_user(
     uow: IUnitOfWork,
 ) -> UserRes:
     """
+    Retrieve a user by ID.
+
     Args:
-        user_id (str): [description]
-        uow (IUnitOfWork): [description]
+        user_id (str): ID of the user to retrieve.
+        uow (IUnitOfWork): uow used to access repositories and manage transactions.
 
     Raises:
-        NotFoundError: [description]
+        NotFoundError: If the user with the given ID does not exist.
 
     Returns:
-        UserRes: [description]
+        UserRes: Response containing the user's information.
     """
 
     user = await uow.users.get_by_id(user_id)

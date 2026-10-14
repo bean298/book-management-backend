@@ -27,15 +27,17 @@ from app.utils.security import (
 # Register new account
 async def register(uow: IUnitOfWork, data: UserCreateReq) -> User:
     """
+    Register a new user account.
+
     Args:
-        uow (IUnitOfWork): [description]
-        data (UserCreateReq): [description]
+        uow (IUnitOfWork): uow used to access repositories and manage transactions.
+        data (UserCreateReq): Request data containing the new user's information.
 
     Raises:
-        EmailAlreadyRegisteredError: [description]
+        EmailAlreadyRegisteredError: If the email is already registered.
 
     Returns:
-        User: [description]
+        User: The newly registered user.
     """
 
     # Check existing email
@@ -56,16 +58,18 @@ async def register(uow: IUnitOfWork, data: UserCreateReq) -> User:
 # User login, return JWT token
 async def login(uow: IUnitOfWork, email: str, password: str) -> TokenRes:
     """
+    Authenticate a user and generate access and refresh tokens.
+
     Args:
-        uow (IUnitOfWork): [description]
-        email (str): [description]
-        password (str): [description]
+        uow (IUnitOfWork): uow used to access repositories and manage transactions.
+        email (str): Email address used to log in.
+        password (str): Plain-text password provided by the user.
 
     Raises:
-        InvalidCredentialsError: [description]
+        InvalidCredentialsError: If the email does not exist or the password is incorrect.
 
     Returns:
-        TokenRes: [description]
+        TokenRes: Response containing access token, refresh token, and user information.
     """
 
     # Check existing email and verify password
@@ -97,19 +101,20 @@ async def login(uow: IUnitOfWork, email: str, password: str) -> TokenRes:
 # Refresh token for user
 async def refresh_token(uow: IUnitOfWork, refresh_token_raw: str) -> TokenRes:
     """
+    Refresh the access token and rotate the refresh token.
+
     Args:
-        uow (IUnitOfWork): [description]
-        refresh_token_raw (str): [description]
+        uow (IUnitOfWork): uow used to access repositories and manage transactions.
+        refresh_token_raw (str): Raw refresh token received from the client.
 
     Raises:
-        InvalidRefreshTokenError: [description]
-        RefreshTokenReusedError: [description]
-        InvalidRefreshTokenError: [description]
-        UserNotFoundError: [description]
+        InvalidRefreshTokenError: If the refresh token is not found, revoked, or expired.
+        RefreshTokenReusedError: If a revoked refresh token that has been replaced is reused.
+        UserNotFoundError: If the user associated with the refresh token does not exist.
 
     Returns:
-        TokenRes: [description]
-    """
+        TokenRes: Response containing a new access token, refresh token, and user information.
+    """  # noqa: E501
 
     # Hash refresh token (received from client)
     token_hash = hash_token(refresh_token_raw)
@@ -168,9 +173,11 @@ async def refresh_token(uow: IUnitOfWork, refresh_token_raw: str) -> TokenRes:
 # Revoke token when user logout
 async def logout(uow: IUnitOfWork, refresh_token_raw: str) -> None:
     """
+    Revoke the refresh token when the user logs out.
+
     Args:
-        uow (IUnitOfWork): [description]
-        refresh_token_raw (str): [description]
+        uow (IUnitOfWork): uow used to access repositories and manage transactions.
+        refresh_token_raw (str): Raw refresh token received from the client.
     """
 
     token_hash = hash_token(refresh_token_raw)
@@ -184,6 +191,15 @@ async def logout(uow: IUnitOfWork, refresh_token_raw: str) -> None:
 
 # Delete expired token
 async def delete_expired_token(uow: IUnitOfWork) -> int:
+    """
+    Delete expired refresh tokens from the database.
+
+    Args:
+        uow (IUnitOfWork): uow used to access repositories and manage transactions.
+
+    Returns:
+        int: Number of expired refresh tokens deleted.
+    """
     now = datetime.now(UTC)
 
     deleted = await uow.refresh_tokens.delete_expired_refresh_tokens(now)
