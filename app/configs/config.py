@@ -67,6 +67,12 @@ MINIO_BUCKET = os.getenv(
     "BOOK_MANAGEMENT_MINIO_PI_BUCKET", default="book-management-bucket"
 )
 
+# Redis
+REDIS_HOST = os.getenv("BOOK_MANAGEMENT_REDIS_HOST", default="localhost")
+REDIS_PORT = int(os.getenv("BOOK_MANAGEMENT_REDIS_PORT", default="6379"))
+REDIS_PASSWORD = os.getenv("BOOK_MANAGEMENT_REDIS_PASSWORD", default="")
+REDIS_DB = int(os.getenv("BOOK_MANAGEMENT_REDIS_DB", default="0"))
+
 # VNPay
 VNPAY_TMN_CODE: str = os.getenv("VNPAY_TMN_CODE", default="")
 VNPAY_HASH_SECRET: str = os.getenv("VNPAY_HASH_SECRET", default="")

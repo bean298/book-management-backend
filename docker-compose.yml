@@ -94,6 +94,22 @@ services:
     ports:
       - "4040:4040"
 
+  # Redis container for caching
+  redis:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${BOOK_MANAGEMENT_REDIS_PASSWORD:-}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "if [ -n \"$$REDIS_PASSWORD\" ]; then redis-cli -a \"$$REDIS_PASSWORD\" ping; else redis-cli ping; fi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:
   minio_data:
+  redis_data:
