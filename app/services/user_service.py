@@ -68,6 +68,7 @@ async def update_user(
         exclude_unset=True, exclude_none=True
     )  # skip None, skip field haven't set
 
+    # items(): get key, value pairs of dict
     for field, value in update_user.items():
         setattr(user, field, value)
 
