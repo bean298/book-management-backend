@@ -16,6 +16,8 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
 )
 
+from app.orm.postgres import DBContext
+
 # 1 UnitOfWork = 1 request. When request to API will create a new UnitOfWork,
 # in this UnitOfWork will create a new session and all repositories
 # After request finish, will UnitOfWork will auto commit or rollback if error,
@@ -25,7 +27,7 @@ from sqlalchemy.ext.asyncio import (
 class UnitOfWork:
     def __init__(
         self,
-        db,
+        db: DBContext,
         repositories: dict[str, Callable[[AsyncSession], object]],
     ):
         self._db = db
