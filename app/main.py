@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.configs import config
 from app.core.docs_ui import get_swagger_ui_html
+from app.core.redis import redis_service
 from app.exceptions.base_exception import BaseAppException
 from app.jobs.scheduler import shutdown_all_jobs, start_all_jobs
 from app.logging.logger import logger
@@ -29,6 +30,8 @@ async def lifespan(app: FastAPI):
     start_all_jobs()
 
     yield
+
+    await redis_service.close()
 
     shutdown_all_jobs()
 
