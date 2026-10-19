@@ -1,3 +1,4 @@
+from app.core.redis import redis_service
 from app.db.database import IUnitOfWork
 from app.exceptions.resource_exception import NotFoundError
 from app.logging.logger import logger
@@ -67,6 +68,9 @@ async def update_author(
     for field, value in update_author.items():
         setattr(author, field, value)
 
+    # Invalidate cache
+    await redis_service.remove_from_cache(f"author:{author_id}")
+
     logger.info(f"Author updated: id={author_id}")
 
     return author_to_res(author)
@@ -91,6 +95,9 @@ async def delete_author(author_id: str, uow: IUnitOfWork) -> AuthorRes:
         raise NotFoundError()
 
     await uow.authors.delete(author)
+
+    # Invalidate cache
+    await redis_service.remove_from_cache(f"author:{author_id}")
 
     logger.info(f"Author deleted: id={author_id}")
 
@@ -140,8 +147,20 @@ async def get_author(
     Returns:
         AuthorRes: [description]
     """
+    cache_key = f"author:{author_id}"
+
+    # Read from cache
+    cached = await redis_service.get_from_cache(cache_key)
+    if cached:
+        return AuthorRes(**cached)
+
     author = await uow.authors.get_by_id(author_id)
     if not author:
         raise NotFoundError()
 
-    return author_to_res(author)
+    res = author_to_res(author)
+
+    # Save to cache (1 hour)
+    await redis_service.set_to_cache(cache_key, res.model_dump(mode="json"), ttl=3600)
+
+    return res

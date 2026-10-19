@@ -1,3 +1,4 @@
+from app.core.redis import redis_service
 from app.db.database import IUnitOfWork
 from app.exceptions.resource_exception import NotFoundError
 from app.logging.logger import logger
@@ -62,6 +63,9 @@ async def update_category(
     for field, value in update_data.items():
         setattr(category, field, value)
 
+    # Invalidate cache
+    await redis_service.remove_from_cache(f"category:{category_id}")
+
     logger.info("Category updated: id=%s", category_id)
     return category_to_res(category)
 
@@ -82,6 +86,10 @@ async def delete_category(category_id: str, uow: IUnitOfWork):
         raise NotFoundError()
 
     await uow.categories.delete(category)
+
+    # Invalidate cache
+    await redis_service.remove_from_cache(f"category:{category_id}")
+
     logger.info("Category deleted: id=%s", category_id)
 
 
@@ -130,8 +138,20 @@ async def get_category(
     Returns:
         CategoryRes: [description]
     """
+    cache_key = f"category:{category_id}"
+
+    # Read from cache
+    cached = await redis_service.get_from_cache(cache_key)
+    if cached:
+        return CategoryRes(**cached)
+
     category = await uow.categories.get_by_id(category_id)
     if not category:
         raise NotFoundError()
 
-    return category_to_res(category)
+    res = category_to_res(category)
+
+    # Save to cache (1 hour)
+    await redis_service.set_to_cache(cache_key, res.model_dump(mode="json"), ttl=3600)
+
+    return res
