@@ -102,8 +102,8 @@ async def get_book(
 )
 async def update_book(
     book_id: str,
-    title: str | None = Form(..., description="Book title"),
-    price: float | None = Form(..., description="Book price"),
+    title: str | None = Form(None, description="Book title"),
+    price: float | None = Form(None, description="Book price"),
     published_year: int | None = Form(None, description="Published year"),
     quantity: int | None = Form(0, description="Quantity in stock"),
     description: str | None = Form(None, description="Book description"),

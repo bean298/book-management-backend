@@ -1,6 +1,7 @@
 from fastapi import UploadFile
 
 from app.configs import config
+from app.core.redis import redis_service
 from app.core.s3_minio import minio_service
 from app.db.database import IUnitOfWork
 from app.exceptions.resource_exception import NotFoundError
@@ -110,6 +111,9 @@ async def update_book(
     for field, value in update_data.items():
         setattr(book, field, value)
 
+    # Remove from redis cache
+    await redis_service.remove_from_cache(f"book:{book_id}")
+
     logger.info(f"Book updated: id={book_id}")
 
     return book_to_res(book)
@@ -138,6 +142,9 @@ async def delete_book(book_id: str, uow: IUnitOfWork) -> None:
             logger.warning(f"Failed to delete image {book.cover_image}: {e}")
 
     await uow.books.delete(book)
+
+    # Remove from redis cache
+    await redis_service.remove_from_cache(f"book:{book_id}")
 
     logger.info(f"Book deleted: id={book_id}")
 
@@ -176,8 +183,20 @@ async def get_book(
     book_id: str,
     uow: IUnitOfWork,
 ) -> BookRes:
+    cache_key = f"book:{book_id}"
+
+    # Read from cache
+    cached = await redis_service.get_from_cache(cache_key)
+    if cached:
+        return BookRes(**cached)
+
     book = await uow.books.get_by_id(book_id)
     if not book:
         raise NotFoundError()
 
-    return book_to_res(book)
+    res = book_to_res(book)
+
+    # Save to cache in 5 mins
+    await redis_service.set_to_cache(cache_key, res.model_dump(mode="json"), ttl=300)
+
+    return res
