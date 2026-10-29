@@ -112,7 +112,7 @@ async def update_book(
         setattr(book, field, value)
 
     # Remove from redis cache
-    await redis_service.remove_from_cache(f"book:{book_id}")
+    # await redis_service.remove_from_cache(f"book:{book_id}")
 
     logger.info(f"Book updated: id={book_id}")
 
@@ -144,7 +144,7 @@ async def delete_book(book_id: str, uow: IUnitOfWork) -> None:
     await uow.books.delete(book)
 
     # Remove from redis cache
-    await redis_service.remove_from_cache(f"book:{book_id}")
+    # await redis_service.remove_from_cache(f"book:{book_id}")
 
     logger.info(f"Book deleted: id={book_id}")
 

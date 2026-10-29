@@ -38,5 +38,6 @@ class Book(AppBaseMixin, Base):
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
 
     # Relationships to take author, category when query book
-    author: Mapped[Author] = relationship(back_populates="books")
-    category: Mapped[Category] = relationship(back_populates="books")
+    # lazy="selectin" -> eager load in async context (avoid MissingGreenlet)
+    author: Mapped[Author] = relationship(back_populates="books", lazy="selectin")
+    category: Mapped[Category] = relationship(back_populates="books", lazy="selectin")

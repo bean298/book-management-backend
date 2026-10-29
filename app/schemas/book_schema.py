@@ -51,6 +51,8 @@ class BookRes(_BookBase):
 
     id: str = Field(..., description="Book ID")
     slug: str = Field(..., description="URL slug")
+    author_name: str | None = Field(default=None, description="Author name")
+    category_name: str | None = Field(default=None, description="Category name")
     created_at: datetime
 
 
@@ -74,7 +76,9 @@ def book_to_res(book: Book) -> BookRes:
         id=str(book.id),
         title=book.title,
         author_id=book.author_id,
+        author_name=book.author.name if book.author else None,
         category_id=book.category_id,
+        category_name=book.category.name if book.category else None,
         published_year=book.published_year,
         cover_image=resolve_images(book.cover_image),
         price=book.price,
