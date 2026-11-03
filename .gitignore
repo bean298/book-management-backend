@@ -13,3 +13,8 @@ logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+
+# Seed data
+# The full dump (00_*.sql) contains real user data, so it is kept private and
+# shared separately. category.sql and user.sql stay in git as sample data.
+inti_database/00_*.sql

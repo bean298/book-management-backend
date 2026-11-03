@@ -8,10 +8,12 @@ services:
       POSTGRES_USER: ${BOOK_MANAGEMENT_DB_USER}
       POSTGRES_PASSWORD: ${BOOK_MANAGEMENT_DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       # Keeps database data when the container is recreated.
       - postgres_data:/var/lib/postgresql/data
+      # Seed data
+      - ./inti_database:/docker-entrypoint-initdb.d:ro
     healthcheck:
       # The API starts only after PostgreSQL is ready to accept connections.
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
