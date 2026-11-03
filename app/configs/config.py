@@ -66,6 +66,7 @@ MINIO_REGION = os.getenv("BOOK_MANAGEMENT_MINIO_REGION", default="us-east-1")
 MINIO_BUCKET = os.getenv(
     "BOOK_MANAGEMENT_MINIO_PI_BUCKET", default="book-management-bucket"
 )
+MINIO_PUBLIC_HOST = os.getenv("BOOK_MANAGEMENT_MINIO_PUBLIC_HOST", default=MINIO_HOST)
 
 # Redis
 REDIS_HOST = os.getenv("BOOK_MANAGEMENT_REDIS_HOST", default="localhost")

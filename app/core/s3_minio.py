@@ -11,8 +11,22 @@ from app.logging.logger import logger
 class MinioService:
     # Init MinIO connection
     def __init__(self):
+        # Client to connect to MinIO for uploads.
+        # This client uses the internal host (minio:9000)
+        # that is reachable from inside Docker.
         self.client = Minio(
             config.MINIO_HOST,
+            access_key=config.MINIO_ACCESS_KEY,
+            secret_key=config.MINIO_SECRET_KEY,
+            region=config.MINIO_REGION,
+            secure=config.ENV != "DEV",
+        )
+
+        # Client to generate presigned URLs for open the image in browser.
+        # This client uses the public host (localhost:9000)
+        # that is reachable from the browser.
+        self.presign_client = Minio(
+            config.MINIO_PUBLIC_HOST,
             access_key=config.MINIO_ACCESS_KEY,
             secret_key=config.MINIO_SECRET_KEY,
             region=config.MINIO_REGION,
@@ -27,7 +41,7 @@ class MinioService:
         expires_hour: int = 1,
     ) -> str | None:
         try:
-            return self.client.presigned_get_object(
+            return self.presign_client.presigned_get_object(
                 bucket,
                 object_name,
                 expires=timedelta(hours=expires_hour),

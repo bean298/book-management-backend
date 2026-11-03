@@ -66,7 +66,10 @@ services:
     environment:
       # Services communicate through service names, not localhost, inside Docker.
       BOOK_MANAGEMENT_DB_HOST: db
+      # Internal endpoint: used by the API for uploads / object operations.
       BOOK_MANAGEMENT_MINIO_HOST: minio:9000
+      # Public endpoint: used by the API to generate presigned URLs for the browser.
+      BOOK_MANAGEMENT_MINIO_PUBLIC_HOST: localhost:9000
       # The MinIO client in this project uses HTTP in the DEV environment.
       BOOK_MANAGEMENT_ENV: DEV
     ports:
