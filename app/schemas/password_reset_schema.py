@@ -1,6 +1,15 @@
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import AfterValidator, BaseModel, EmailStr, Field
+
+from app.utils.format_password import validate_password
+
+# Annotated password
+NewPassword = Annotated[
+    str,
+    Field(None, description="NewPassword"),
+    AfterValidator(validate_password),  # Validate password
+]
 
 
 class ForgetPasswordReq(BaseModel):
@@ -16,7 +25,7 @@ class ResetPasswordReq(BaseModel):
     """Schema confirm and change pass (Both Web and Mobile)"""
 
     reset_token: str = Field(..., description="Token from OTP or Link email")
-    new_password: str = Field(..., min_length=6, description="New password of user")
+    new_password: NewPassword
 
 
 class MessageResponse(BaseModel):

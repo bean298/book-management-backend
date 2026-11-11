@@ -10,6 +10,9 @@ from app.schemas.user_schema import (
     req_to_user,
     user_to_res,
 )
+from app.utils.security import (
+    hash_password,
+)
 
 
 # Create new user
@@ -34,7 +37,8 @@ async def create_user(user_data: UserCreateReq, uow: IUnitOfWork) -> UserRes:
         raise ValueError(f"User with email {user_data.email} already exists.")
 
     # Create new user
-    user = req_to_user(user_data)
+    hashed_password = hash_password(user_data.password)
+    user = req_to_user(user_data, hashed_password)
     new_user = await uow.users.add(user)
 
     logger.info("User registered | id=%s, email=%s", new_user.id, new_user.email)

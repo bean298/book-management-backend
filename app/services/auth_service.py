@@ -19,6 +19,7 @@ from app.schemas.user_schema import UserCreateReq, req_to_user, user_to_res
 from app.utils.security import (
     create_access_token,
     create_refresh_token,
+    hash_password,
     hash_token,
     verify_password,
 )
@@ -47,7 +48,8 @@ async def register(uow: IUnitOfWork, data: UserCreateReq) -> User:
         raise EmailAlreadyRegisteredError()
 
     # Create new user
-    user = req_to_user(data)
+    hashed_password = hash_password(data.password)
+    user = req_to_user(data, hashed_password)
     new_user = await uow.users.add(user)
     await uow.commit()
 

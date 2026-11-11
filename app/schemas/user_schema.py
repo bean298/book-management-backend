@@ -6,14 +6,21 @@ from pydantic import AfterValidator, BaseModel, EmailStr, Field
 
 from app.enum.common import UserRole
 from app.models.user_model import User
+from app.utils.format_password import validate_password
 from app.utils.format_phone import validate_vn_phone
-from app.utils.security import hash_password
 
 # Annotated phone
 PhoneNumber = Annotated[
     int | None,
     Field(None, description="Vietnamese mobile phone number"),
     AfterValidator(validate_vn_phone),  # Validate phone regex
+]
+
+# Annotated password
+Password = Annotated[
+    str,
+    Field(None, description="Password"),
+    AfterValidator(validate_password),  # Validate password
 ]
 
 
@@ -28,7 +35,7 @@ class _UserBase(BaseModel):
 class UserCreateReq(_UserBase):
     """Schema for registering a new user."""
 
-    password: str = Field(..., min_length=6, description="Password")
+    password: Password
     role: UserRole = Field(
         default=UserRole.CUSTOMER, description="User role (admin / customer)"
     )
@@ -49,12 +56,12 @@ class UpdateUserReq(BaseModel):
     phone: PhoneNumber
 
 
-def req_to_user(data: UserCreateReq) -> User:
+def req_to_user(data: UserCreateReq, hashed_password: str) -> User:
     return User(
         name=data.name,
         email=data.email,
         phone=data.phone,
-        hashed_password=hash_password(data.password),
+        hashed_password=hashed_password,
         role=data.role,
     )
 
