@@ -11,7 +11,7 @@ from app.utils.format_phone import validate_vn_phone
 
 # Annotated phone
 PhoneNumber = Annotated[
-    int | None,
+    str | None,
     Field(None, description="Vietnamese mobile phone number"),
     AfterValidator(validate_vn_phone),  # Validate phone regex
 ]

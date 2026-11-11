@@ -35,7 +35,7 @@ class OrderUserRes(BaseModel):
     id: UUID = Field(..., description="User ID")
     name: str = Field(..., description="User name")
     email: str = Field(..., description="User email")
-    phone: int | None = Field(None, description="User phone")
+    phone: str | None = Field(None, description="User phone")
 
 
 class OrderRes(_OrderBase):
