@@ -4,6 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends
 
 from app.db.database import IUnitOfWork, get_uow
 from app.schemas.auth_schema import LoginReq, RefreshTokenReq, TokenRes
+from app.schemas.base_schema import AppBaseResponse
 from app.schemas.password_reset_schema import (
     ForgetPasswordReq,
     MessageResponse,
@@ -30,7 +31,7 @@ async def register(
 
     # Sent welcome mail
     background_tasks.add_task(send_welcome_email, email=user.email, name=user.name)
-    return user
+    return AppBaseResponse(data=user, message="Registration successful.")
 
 
 # Login
@@ -41,7 +42,7 @@ async def login(
 ):
     async with uow:
         res = await auth_service.login(uow, data.email, data.password)
-        return res
+        return AppBaseResponse(data=res, message="Login successful")
 
 
 # Request reset password
