@@ -20,7 +20,9 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 # Register
-@router.post("/register", status_code=HTTPStatus.CREATED, response_model=UserRes)
+@router.post(
+    "/register", status_code=HTTPStatus.CREATED, response_model=AppBaseResponse[UserRes]
+)
 async def register(
     data: UserCreateReq,
     uow: IUnitOfWork = Depends(get_uow),
@@ -35,7 +37,11 @@ async def register(
 
 
 # Login
-@router.post("/login", status_code=HTTPStatus.OK, response_model=TokenRes)
+@router.post(
+    "/login",
+    status_code=HTTPStatus.OK,
+    response_model=AppBaseResponse[TokenRes],
+)
 async def login(
     data: LoginReq,
     uow: IUnitOfWork = Depends(get_uow),
