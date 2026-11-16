@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+from http import HTTPStatus
 
 import uvicorn
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -21,6 +23,7 @@ from app.routers.dashboard_router import router as dashboard_router
 from app.routers.order_router import router as order_router
 from app.routers.payment_router import router as payment_router
 from app.routers.user_router import router as user_router
+from app.utils.format_validation_errors import format_validation_errors
 
 
 @asynccontextmanager
@@ -131,6 +134,21 @@ async def app_exception_handler(request: Request, exc: BaseAppException):
         content={
             "detail": exc.detail,
             "error_code": exc.error_code,
+        },
+    )
+
+
+# Exception for Validation parameter
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handle(request: Request, exc: RequestValidationError):
+    message, fields = format_validation_errors(exc.errors())
+
+    return JSONResponse(
+        status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        content={
+            "detail": message,
+            "error_code": "VALIDATION_ERROR",
+            "fields": fields,
         },
     )
 
