@@ -7,8 +7,8 @@ from app.schemas.user_schema import UserRes, user_to_res
 class TokenRes(BaseModel):
     """Return token when login"""
 
-    access_token: str
-    refresh_token: str
+    access_token: str | None = None
+    refresh_token: str | None = None
     token_type: str = "bearer"
     user: UserRes
 
@@ -19,11 +19,11 @@ class LoginReq(BaseModel):
 
 
 class RefreshTokenReq(BaseModel):
-    refresh_token: str
+    refresh_token: str | None = None
 
 
 class LogoutReq(BaseModel):
-    refresh_token: str
+    refresh_token: str | None = None
 
 
 # Convert ORM model → Pydantic schema for JSON response
