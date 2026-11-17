@@ -20,6 +20,14 @@ DATABASE_URL = (
     f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
 
+# AUTH COOKIE
+ACCESS_COOKIE_NAME: str = os.getenv("ACCESS_COOKIE_NAME", "access_token")
+REFRESH_COOKIE_NAME: str = os.getenv("REFRESH_COOKIE_NAME", "refresh_token")
+REFRESH_COOKIE_PATH: str = os.getenv("REFRESH_COOKIE_PATH", "/auth")
+COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "False") == "True"
+COOKIE_SAMESITE: str = os.getenv("COOKIE_SAMESITE", "lax")
+COOKIE_DOMAIN: str = os.getenv("COOKIE_DOMAIN", "")
+
 # JWT
 JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", default="dev-secret-change-me")
 JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", default="HS256")

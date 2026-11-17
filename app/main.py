@@ -113,8 +113,11 @@ templates = Jinja2Templates(directory="app/templates")
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all domain (dev)
-    allow_credentials=False,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
     allow_methods=[
         "GET",
         "POST",
