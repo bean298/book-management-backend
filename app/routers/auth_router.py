@@ -167,7 +167,7 @@ async def refresh(
 # Logout
 @router.post("/logout", status_code=HTTPStatus.OK, response_model=MessageResponse)
 async def logout(
-    data: RefreshTokenReq,
+    data: RefreshTokenReq | None,
     request: Request,
     response: Response,
     uow: IUnitOfWork = Depends(get_uow),
